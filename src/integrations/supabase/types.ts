@@ -61,6 +61,63 @@ export type Database = {
           },
         ]
       }
+      client_installments: {
+        Row: {
+          agreement_total: number
+          amount: number
+          client_id: string
+          created_at: string
+          due_date: string
+          id: string
+          number: number
+          paid: boolean
+          paid_at: string | null
+          quote_id: string | null
+          total_count: number
+        }
+        Insert: {
+          agreement_total: number
+          amount: number
+          client_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          number: number
+          paid?: boolean
+          paid_at?: string | null
+          quote_id?: string | null
+          total_count: number
+        }
+        Update: {
+          agreement_total?: number
+          amount?: number
+          client_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          number?: number
+          paid?: boolean
+          paid_at?: string | null
+          quote_id?: string | null
+          total_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_installments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_installments_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_vault: {
         Row: {
           client_id: string
@@ -156,6 +213,100 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_followups: {
+        Row: {
+          attempt_no: number
+          caller_name: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string
+          note: string | null
+          outcome: string
+        }
+        Insert: {
+          attempt_no: number
+          caller_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id: string
+          note?: string | null
+          outcome: string
+        }
+        Update: {
+          attempt_no?: number
+          caller_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+          note?: string | null
+          outcome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_followups_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          client_id: string | null
+          client_name: string
+          created_at: string
+          id: string
+          notes: string | null
+          phone: string | null
+          project_name: string | null
+          rep_id: string | null
+          rep_name: string | null
+          seq: number
+          service: string | null
+          status: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          project_name?: string | null
+          rep_id?: string | null
+          rep_name?: string | null
+          seq?: number
+          service?: string | null
+          status?: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          project_name?: string | null
+          rep_id?: string | null
+          rep_name?: string | null
+          seq?: number
+          service?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -174,6 +325,162 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+        }
+        Relationships: []
+      }
+      quote_items: {
+        Row: {
+          description: string | null
+          id: string
+          name: string
+          position: number
+          price: number
+          qty: number
+          quote_id: string
+          service_id: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          name: string
+          position?: number
+          price?: number
+          qty?: number
+          quote_id: string
+          service_id?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          name?: string
+          position?: number
+          price?: number
+          qty?: number
+          quote_id?: string
+          service_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_items_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          client_id: string | null
+          client_response: string | null
+          created_at: string
+          created_by: string | null
+          customer_name: string
+          discount: number
+          id: string
+          installments: number
+          lead_id: string | null
+          notes: string | null
+          payment_type: string
+          phone: string | null
+          project_name: string | null
+          seq: number
+          share_token: string
+          status: string
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_response?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_name: string
+          discount?: number
+          id?: string
+          installments?: number
+          lead_id?: string | null
+          notes?: string | null
+          payment_type?: string
+          phone?: string | null
+          project_name?: string | null
+          seq?: number
+          share_token?: string
+          status?: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_response?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string
+          discount?: number
+          id?: string
+          installments?: number
+          lead_id?: string | null
+          notes?: string | null
+          payment_type?: string
+          phone?: string | null
+          project_name?: string | null
+          seq?: number
+          share_token?: string
+          status?: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      services: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          payment_terms: string | null
+          price: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          payment_terms?: string | null
+          price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          payment_terms?: string | null
+          price?: number
         }
         Relationships: []
       }
@@ -233,8 +540,13 @@ export type Database = {
     }
     Functions: {
       bootstrap_user: { Args: never; Returns: string }
+      can_crm: { Args: never; Returns: boolean }
       can_edit_client: { Args: { _client: string }; Returns: boolean }
       can_view_client: { Args: { _client: string }; Returns: boolean }
+      can_view_crm: { Args: never; Returns: boolean }
+      convert_lead_to_client: { Args: { _lead: string }; Returns: string }
+      convert_quote_to_client: { Args: { _quote: string }; Returns: string }
+      get_shared_quote: { Args: { _token: string }; Returns: Json }
       get_shared_report: {
         Args: { _from: string; _to: string; _token: string }
         Returns: Json
@@ -256,6 +568,11 @@ export type Database = {
           id: string
           roles: Database["public"]["Enums"]["app_role"][]
         }[]
+      }
+      quote_total: { Args: { _quote: string }; Returns: number }
+      respond_quote: {
+        Args: { _action: string; _note: string; _token: string }
+        Returns: string
       }
     }
     Enums: {

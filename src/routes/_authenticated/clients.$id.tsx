@@ -16,6 +16,7 @@ import { DateRange } from "@/components/DateRange";
 import { ClientForm, type ClientValues } from "@/components/ClientForm";
 import { useMe } from "@/lib/auth";
 import { PLATFORMS, computeTotals, fmt, today, type Entry } from "@/lib/metrics";
+import { parseSheets, type ImportResult } from "@/lib/excel-import";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({
@@ -214,62 +215,62 @@ function Metrics({ m }: { m: ReturnType<typeof computeTotals> }) {
   );
 }
 
-const HEADER_MAP: Record<string, keyof Entry> = {
-  date: "entry_date", "التاريخ": "entry_date", day: "entry_date",
-  platform: "platform", "المنصة": "platform",
-  spend: "spend", cost: "spend", "الصرف": "spend", "amount spent": "spend",
-  clicks: "clicks", "النقرات": "clicks",
-  impressions: "impressions", "الظهور": "impressions", "مرات الظهور": "impressions",
-  purchases: "purchases", conversions: "purchases", "المشتريات": "purchases",
-  revenue: "revenue", "conversion value": "revenue", "الإيراد": "revenue",
-};
-
 function ImportTab({ clientId }: { clientId: string }) {
-  const [preview, setPreview] = useState<Entry[]>([]);
+  const [result, setResult] = useState<ImportResult | null>(null);
   const [defaultPlatform, setDefaultPlatform] = useState<string>(PLATFORMS[0]);
   const [busy, setBusy] = useState(false);
 
   async function onFile(f: File) {
-    const wb = XLSX.read(await f.arrayBuffer(), { cellDates: true });
-    const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0] ?? ""]!, { defval: "" });
-    const out: Entry[] = [];
-    for (const r of raw) {
-      const e: Partial<Entry> = {};
-      for (const [k, v] of Object.entries(r)) {
-        const key = HEADER_MAP[k.trim().toLowerCase()];
-        if (!key) continue;
-        if (key === "entry_date") {
-          const d = v instanceof Date ? v : new Date(String(v));
-          if (!isNaN(d.getTime())) e.entry_date = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-        } else if (key === "platform") e.platform = String(v).trim();
-        else (e as Record<string, number>)[key] = Number(String(v).replace(/[^\d.-]/g, "")) || 0;
-      }
-      if (!e.entry_date) continue;
-      out.push({ platform: e.platform || defaultPlatform, spend: 0, clicks: 0, impressions: 0, purchases: 0, revenue: 0, ...e } as Entry);
+    try {
+      const wb = XLSX.read(await f.arrayBuffer(), { cellDates: false, raw: false });
+      const sheets = wb.SheetNames.map((name) => {
+        const ws = wb.Sheets[name]!;
+        // Fill merged cells with their top-left value so merged dates aren't lost.
+        for (const m of ws["!merges"] ?? []) {
+          const src = ws[XLSX.utils.encode_cell(m.s)];
+          if (!src) continue;
+          for (let r = m.s.r; r <= m.e.r; r++)
+            for (let c = m.s.c; c <= m.e.c; c++) {
+              const addr = XLSX.utils.encode_cell({ r, c });
+              if (!ws[addr]) ws[addr] = { ...src };
+            }
+        }
+        return { name, rows: XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true }) };
+      });
+      const r = parseSheets(sheets, defaultPlatform);
+      setResult(r);
+      if (!r.entries.length && !r.store.length) toast.error("لم نجد بيانات قابلة للاستيراد. راجع التحذيرات بالأسفل.");
+    } catch (e) {
+      toast.error("تعذر قراءة الملف: " + (e instanceof Error ? e.message : ""));
     }
-    if (!out.length) toast.error("لم نجد صفوفاً صالحة. تأكد من وجود عمود التاريخ (Date / التاريخ).");
-    setPreview(out);
   }
 
   async function save() {
+    if (!result) return;
     setBusy(true);
-    const merged = new Map<string, Entry>();
-    preview.forEach((e) => merged.set(`${e.entry_date}|${e.platform}`, { ...e, clicks: Math.round(e.clicks), impressions: Math.round(e.impressions), purchases: Math.round(e.purchases) }));
-    const { error } = await supabase.from("campaign_entries").upsert([...merged.values()].map((e) => ({ client_id: clientId, ...e })), { onConflict: "client_id,entry_date,platform" });
+    const ops = [];
+    if (result.entries.length)
+      ops.push(supabase.from("campaign_entries").upsert(result.entries.map((e) => ({ client_id: clientId, ...e })), { onConflict: "client_id,entry_date,platform" }));
+    if (result.store.length)
+      ops.push(supabase.from("store_sales").upsert(result.store.map((s) => ({ client_id: clientId, ...s })), { onConflict: "client_id,entry_date" }));
+    const res = await Promise.all(ops);
     setBusy(false);
-    if (error) return void toast.error(error.message);
-    toast.success(`تم حفظ ${merged.size} صف من البيانات التاريخية`);
-    setPreview([]);
+    const err = res.find((r) => r.error)?.error;
+    if (err) return void toast.error(err.message);
+    toast.success(`تم حفظ ${result.entries.length} سجل حملات و ${result.store.length} يوم مبيعات متجر`);
+    setResult(null);
   }
+
+  const FIELD_AR: Record<string, string> = { date: "التاريخ", platform: "المنصة", spend: "الصرف", clicks: "النقرات", impressions: "الظهور", purchases: "المشتريات", revenue: "الإيراد", store_revenue: "مبيعات المتجر", store_orders: "طلبات المتجر" };
 
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
-        الأعمدة المدعومة: <span className="num text-foreground">Date, Platform, Spend, Clicks, Impressions, Purchases, Revenue</span> (أو بالعربي: التاريخ، المنصة، الصرف، النقرات، الظهور، المشتريات، الإيراد). إذا لم يوجد عمود المنصة نستخدم المنصة الافتراضية.
+        ارفع الملف كما هو. النظام يتعرف تلقائياً على صف العناوين وأسماء الأعمدة بالعربي أو الإنجليزي، ويفهم كل صيغ التاريخ (أرقام إكسل، DD/MM/YYYY، MM/DD/YYYY، YYYY-MM-DD، أسماء الشهور، الأرقام العربية، والخلايا المدمجة). يقرأ كل أوراق الملف، ويجمع الحملات المتعددة في نفس اليوم والمنصة، ويتجاهل أعمدة النسب المحسوبة وصفوف الإجمالي.
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-2">
-          <Label>المنصة الافتراضية</Label>
+          <Label>المنصة الافتراضية (إن لم يوجد عمود منصة)</Label>
           <Select value={defaultPlatform} onValueChange={setDefaultPlatform}>
             <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
             <SelectContent>{PLATFORMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
@@ -277,24 +278,50 @@ function ImportTab({ clientId }: { clientId: string }) {
         </div>
         <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border px-4 py-2 text-sm hover:bg-accent">
           <Upload className="h-4 w-4" /> اختر ملف إكسل
-          <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+          <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onFile(f); }} />
         </label>
       </div>
-      {preview.length > 0 && (
+      {result && (
         <>
-          <p className="text-sm">تم قراءة <span className="num text-gold">{preview.length}</span> صف — إجمالي الصرف <span className="num">{fmt(computeTotals(preview).spend, 2)}</span></p>
-          <div className="max-h-72 overflow-auto rounded-xl border border-border" dir="ltr">
-            <table className="w-full text-xs">
-              <tbody className="num">
-                {preview.slice(0, 50).map((e, i) => (
-                  <tr key={i} className="border-b border-border">
-                    <td className="p-2">{e.entry_date}</td><td className="font-sans">{e.platform}</td><td>{e.spend}</td><td>{e.clicks}</td><td>{e.impressions}</td><td>{e.purchases}</td><td>{e.revenue}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border border-border bg-card p-4"><p className="text-xs text-muted-foreground">صفوف مقروءة</p><p className="num mt-1 text-xl">{result.rowsRead}</p></div>
+            <div className="rounded-lg border border-border bg-card p-4"><p className="text-xs text-muted-foreground">سجلات حملات (يوم × منصة)</p><p className="num mt-1 text-xl text-gold">{result.entries.length}</p></div>
+            <div className="rounded-lg border border-border bg-card p-4"><p className="text-xs text-muted-foreground">أيام مبيعات متجر</p><p className="num mt-1 text-xl">{result.store.length}</p></div>
           </div>
-          <Button onClick={save} disabled={busy}>{busy ? "..." : "حفظ البيانات"}</Button>
+          {result.mapping.map((m) => (
+            <div key={m.sheet} className="flex flex-wrap gap-2 text-xs">
+              <span className="text-muted-foreground">ورقة «{m.sheet}»:</span>
+              {Object.entries(m.columns).map(([f, h]) => (
+                <span key={f} className="rounded border border-border px-2 py-0.5"><span className="text-gold">{FIELD_AR[f]}</span> ← {h}</span>
+              ))}
+            </div>
+          ))}
+          {result.warnings.length > 0 && (
+            <details className="rounded-lg border border-border bg-card p-3 text-sm">
+              <summary className="cursor-pointer text-gold">{result.warnings.length} تحذير (تم استيراد باقي الصفوف)</summary>
+              <ul className="mt-2 max-h-48 space-y-1 overflow-auto text-xs text-muted-foreground">
+                {result.warnings.map((w, i) => <li key={i}>«{w.sheet}» صف <span className="num">{w.row}</span>: {w.message}</li>)}
+              </ul>
+            </details>
+          )}
+          {result.entries.length > 0 && (
+            <div className="max-h-72 overflow-auto rounded-xl border border-border" dir="ltr">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-card text-muted-foreground"><tr><th className="p-2 text-left">Date</th><th>Platform</th><th>Spend</th><th>Clicks</th><th>Impr.</th><th>Purch.</th><th>Revenue</th></tr></thead>
+                <tbody className="num">
+                  {result.entries.slice(0, 200).map((e, i) => (
+                    <tr key={i} className="border-t border-border text-center">
+                      <td className="p-2 text-left">{e.entry_date}</td><td className="font-sans">{e.platform}</td><td>{fmt(e.spend, 2)}</td><td>{fmt(e.clicks)}</td><td>{fmt(e.impressions)}</td><td>{e.purchases}</td><td>{fmt(e.revenue, 2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button onClick={save} disabled={busy || (!result.entries.length && !result.store.length)}>{busy ? "..." : "حفظ في السجل اليومي"}</Button>
+            <Button variant="outline" onClick={() => setResult(null)}>إلغاء</Button>
+          </div>
         </>
       )}
     </div>
