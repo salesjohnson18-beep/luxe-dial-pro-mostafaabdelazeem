@@ -47,18 +47,19 @@ const EXCLUDE = ["per ", "cpc", "ctr", "cpm", "cpa", "roas", "rate", "%", "avg",
 export function matchHeader(raw: unknown): Field | null {
   const h = normHeader(raw);
   if (!h) return null;
-  const isExcluded = EXCLUDE.some((x) => h.includes(x.trim()) && x.trim().length > 0);
+  const isExcluded = EXCLUDE.some((x) => x.trim().length > 0 && h.includes(x.trim()));
+  // Pick the longest matching synonym across all fields (e.g. "purchases conversion value" → revenue).
+  let best: { field: Field; len: number } | null = null;
   for (const [field, syns] of SYNONYMS) {
     for (const s of syns) {
       const exact = h === s;
-      const contains = s.length >= 4 && (h.includes(s) || (s.length >= 5 && h.startsWith(s)));
-      if (exact || (contains && !isExcluded)) {
-        if (isExcluded && !exact) continue;
-        return field;
-      }
+      const contains = s.length >= 4 && h.includes(s);
+      if (!exact && (!contains || isExcluded)) continue;
+      const len = exact ? 1000 : s.length;
+      if (!best || len > best.len) best = { field, len };
     }
   }
-  return null;
+  return best?.field ?? null;
 }
 
 const MONTHS: Record<string, number> = {
@@ -217,7 +218,7 @@ export function parseSheets(sheets: Sheet[], defaultPlatform: string = PLATFORMS
       const nums: Partial<Record<Field, number>> = {};
       for (const f of ["spend", "clicks", "impressions", "purchases", "revenue", "store_revenue", "store_orders"] as Field[]) {
         const raw = get(f);
-        if (raw === undefined) continue;
+        if (raw === undefined || (typeof raw === "string" && raw.trim() === "")) continue;
         const n = parseNumber(raw);
         if (n === null) {
           warnings.push({ sheet: sheet.name, row: excelRow, message: `قيمة غير مفهومة في "${colNames[f]}": ${String(raw)} — اعتُبرت صفراً` });

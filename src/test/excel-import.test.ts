@@ -64,7 +64,6 @@ describe("parseSheets via real xlsx", () => {
     expect(r.entries.find((e) => e.platform === "Snapchat")).toMatchObject({ entry_date: "2026-10-02", spend: 30, impressions: 1000 });
     expect(r.entries.find((e) => e.platform === "Google Ads")?.entry_date).toBe("2026-10-03");
     expect(r.store).toEqual(expect.arrayContaining([{ entry_date: "2026-10-01", revenue: 900, orders: 0 }]));
-    console.log(JSON.stringify(r.warnings));
     expect(r.warnings.length).toBe(2);
   });
 });
