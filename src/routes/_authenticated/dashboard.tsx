@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Area, AreaChart, CartesianGrid, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { DateRange, Stat } from "@/components/DateRange";
 import { byDay, byPlatform, computeTotals, daysAgo, fmt, today, type Entry } from "@/lib/metrics";
@@ -74,7 +74,6 @@ function Dashboard() {
               <YAxis stroke="var(--muted-foreground)" fontSize={11} />
               <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
               <Area type="linear" dataKey="revenue" name="الإيراد" stroke="var(--gold)" strokeWidth={2} fill="url(#g)" />
-              <Line type="linear" dataKey="spend" name="الصرف" stroke="var(--muted-foreground)" strokeDasharray="4 4" dot={false} />
               <Area type="linear" dataKey="spend" name="الصرف" stroke="var(--muted-foreground)" strokeDasharray="4 4" fill="transparent" />
             </AreaChart>
           </ResponsiveContainer>
