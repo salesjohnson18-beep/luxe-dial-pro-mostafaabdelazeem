@@ -130,7 +130,7 @@ export function parseNumber(v: unknown): number | null {
   let s = toLatin(String(v)).trim();
   if (!s || s === "-" || s === "—") return 0;
   const neg = /^\(.*\)$/.test(s);
-  s = s.replace(/[^\d.,-]/g, "");
+  s = (s.replace(/[^\d.,-]+/g, " ").match(/-?[\d,]*\.?\d+/) ?? [""])[0];
   if (/,\d{1,2}$/.test(s) && !s.includes(".")) s = s.replace(",", "."); // 12,5 → 12.5
   s = s.replace(/,/g, "");
   const n = Number(s);
