@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, Users, UserCog, LogOut, Briefcase } from "lucide-react";
+import { LayoutDashboard, UserCog, LogOut, Briefcase } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe, ROLE_LABELS } from "@/lib/auth";
 
@@ -94,4 +94,3 @@ function Shell() {
   );
 }
 
-export { Users };
