@@ -29,6 +29,8 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
+  --color-call: var(--call);
+  --color-call-foreground: var(--call-foreground);
   --color-gold: var(--gold);
   --color-gold-soft: var(--gold-soft);
   --color-border: var(--border);
@@ -70,6 +72,8 @@
   --destructive: oklch(0.62 0.2 27);
   --destructive-foreground: oklch(0.98 0 0);
   --success: oklch(0.72 0.15 150);
+  --call: oklch(0.4 0.09 155);
+  --call-foreground: oklch(0.96 0.02 150);
   --border: oklch(0.8 0.12 80 / 16%);
   --input: oklch(0.8 0.12 80 / 18%);
   --ring: oklch(0.8 0.12 80 / 60%);

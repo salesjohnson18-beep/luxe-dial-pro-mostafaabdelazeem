@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, UserCog, LogOut, Briefcase } from "lucide-react";
+import { LayoutDashboard, UserCog, Contact, Package, LogOut, Briefcase } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe, ROLE_LABELS } from "@/lib/auth";
 
@@ -43,6 +43,9 @@ function Shell() {
   const links = [
     { to: "/dashboard", label: "نظرة عامة", icon: LayoutDashboard },
     { to: "/clients", label: "العملاء", icon: Briefcase },
+    ...(me?.is("admin") || me?.is("sales") || me?.is("accountant")
+      ? [{ to: "/leads", label: "المتابعة والعملاء المحتملون", icon: Contact }, { to: "/services", label: "دليل الخدمات", icon: Package }]
+      : []),
     ...(me?.is("admin") ? [{ to: "/users", label: "المستخدمون", icon: UserCog }] : []),
   ] as const;
 
