@@ -44,7 +44,7 @@ export function ClientForm({
   initial: ClientValues;
   onSubmit: (v: ClientValues) => Promise<void>;
   submitLabel: string;
-  buyers?: { id: string; label: string }[];
+  buyers?: { id: string; label: string }[] | undefined;
 }) {
   const [v, setV] = useState<ClientValues>(initial);
   const isOther = !!v.industry && !INDUSTRIES.includes(v.industry);

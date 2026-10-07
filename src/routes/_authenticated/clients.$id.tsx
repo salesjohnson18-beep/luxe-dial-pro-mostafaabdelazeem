@@ -178,7 +178,7 @@ function EntryTab({ clientId }: { clientId: string }) {
                   <td className="p-2 font-medium">{p}</td>
                   {FIELDS.map(([k]) => (
                     <td key={k} className="p-1">
-                      <Input inputMode="decimal" className="num h-8 w-24 text-center" value={r[k]} onChange={(e) => setRows((s) => ({ ...s, [p]: { ...s[p], [k]: e.target.value.replace(/[^\d.]/g, "") } }))} />
+                      <Input inputMode="decimal" className="num h-8 w-24 text-center" value={r[k]} onChange={(e) => setRows((s) => ({ ...s, [p]: { ...(s[p] ?? emptyRow), [k]: e.target.value.replace(/[^\d.]/g, "") } }))} />
                     </td>
                   ))}
                   <Metrics m={m} />
@@ -231,7 +231,7 @@ function ImportTab({ clientId }: { clientId: string }) {
 
   async function onFile(f: File) {
     const wb = XLSX.read(await f.arrayBuffer(), { cellDates: true });
-    const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+    const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0] ?? ""]!, { defval: "" });
     const out: Entry[] = [];
     for (const r of raw) {
       const e: Partial<Entry> = {};
