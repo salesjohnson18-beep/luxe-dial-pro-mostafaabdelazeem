@@ -55,7 +55,7 @@ function LeadsPage() {
       {shown.length === 0 && <div className="rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">لا توجد كروت هنا.</div>}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {shown.map((l) => {
-          const st = LEAD_STATUS[l.status] ?? LEAD_STATUS.following!;
+          const st = LEAD_STATUS[l.status] ?? LEAD_STATUS["following"]!;
           const count = (l.lead_followups as unknown as { count: number }[])?.[0]?.count ?? 0;
           return (
             <div key={l.id} className="rounded-xl border border-border bg-card p-5">

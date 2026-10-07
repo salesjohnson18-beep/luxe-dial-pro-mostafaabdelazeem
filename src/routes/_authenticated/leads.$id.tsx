@@ -44,7 +44,7 @@ function LeadCard() {
   const lead = data?.lead;
   if (data && !lead) return <p>الكارت غير موجود.</p>;
   if (!lead) return <p className="text-muted-foreground">جارِ التحميل...</p>;
-  const st = LEAD_STATUS[lead.status] ?? LEAD_STATUS.following!;
+  const st = LEAD_STATUS[lead.status] ?? LEAD_STATUS["following"]!;
   const nextNo = (data?.followups[0]?.attempt_no ?? 0) + 1;
   const caller = me?.user.user_metadata?.["full_name"] ?? me?.user.email ?? "";
 
