@@ -290,22 +290,7 @@ function ImportTab({ clientId, sheetUrl, syncedAt, onChanged }: { clientId: stri
 
   async function onFile(f: File) {
     try {
-      const wb = XLSX.read(await f.arrayBuffer(), { cellDates: false, raw: false });
-      const sheets = wb.SheetNames.map((name) => {
-        const ws = wb.Sheets[name]!;
-        // Fill merged cells with their top-left value so merged dates aren't lost.
-        for (const m of ws["!merges"] ?? []) {
-          const src = ws[XLSX.utils.encode_cell(m.s)];
-          if (!src) continue;
-          for (let r = m.s.r; r <= m.e.r; r++)
-            for (let c = m.s.c; c <= m.e.c; c++) {
-              const addr = XLSX.utils.encode_cell({ r, c });
-              if (!ws[addr]) ws[addr] = { ...src };
-            }
-        }
-        return { name, rows: XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true }) };
-      });
-      const r = parseSheets(sheets, defaultPlatform);
+      const r = parseSheets(workbookToSheets(await f.arrayBuffer()), defaultPlatform);
       setResult(r);
       if (!r.entries.length && !r.store.length) toast.error("لم نجد بيانات قابلة للاستيراد. راجع التحذيرات بالأسفل.");
     } catch (e) {
@@ -327,8 +312,9 @@ function ImportTab({ clientId, sheetUrl, syncedAt, onChanged }: { clientId: stri
 
   return (
     <div className="space-y-5">
+      <SheetSync clientId={clientId} sheetUrl={sheetUrl} syncedAt={syncedAt} defaultPlatform={defaultPlatform} onChanged={onChanged} onResult={setResult} />
       <div className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
-        ارفع الملف كما هو. النظام يتعرف تلقائياً على صف العناوين وأسماء الأعمدة بالعربي أو الإنجليزي، ويفهم كل صيغ التاريخ (أرقام إكسل، DD/MM/YYYY، MM/DD/YYYY، YYYY-MM-DD، أسماء الشهور، الأرقام العربية، والخلايا المدمجة). يقرأ كل أوراق الملف، ويجمع الحملات المتعددة في نفس اليوم والمنصة، ويتجاهل أعمدة النسب المحسوبة وصفوف الإجمالي.
+        ارفع الملف كما هو. يدعم الشيت الرأسي (عمود تاريخ) والشيت الأفقي (التواريخ بالعرض في الصف الأول والمنصات والمؤشرات في العمود A مثل PAID CHANNELS / GOOGLE / SNAPCHAT). يتجاهل أعمدة الإجمالي مثل Total May، ينظّف العملات (SAR208.00 ← 208)، ويتجاهل أخطاء الصيغ مثل #REF! و #DIV/0! دون إيقاف الاستيراد. إذا وُجدت أقسام منصات منفصلة تُحفظ كل منصة وحدها، وإلا تُحفظ أرقام PAID CHANNELS على المنصة الافتراضية.
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-2">
