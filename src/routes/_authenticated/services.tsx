@@ -2,7 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { QuoteCreateDialog, type ServiceLite } from "@/components/QuoteCreateDialog";
+import { PAYMENT_TERMS } from "@/lib/crm";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +35,7 @@ function ServicesPage() {
   const { data: me } = useMe();
   const canEdit = !!(me?.is("admin") || me?.is("sales"));
   const [edit, setEdit] = useState<Svc | null>(null);
+  const [quoteFor, setQuoteFor] = useState<ServiceLite | null>(null);
   const { data, refetch } = useQuery({
     queryKey: ["services"],
     queryFn: async () => (await supabase.from("services").select("*").order("created_at")).data ?? [],
@@ -68,9 +72,15 @@ function ServicesPage() {
             {s.description && <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{s.description}</p>}
             <p className="num mt-4 text-2xl text-gold">{fmt(Number(s.price))} <span className="font-sans text-sm">ر.س</span></p>
             {s.payment_terms && <p className="mt-1 text-xs text-muted-foreground">شروط السداد: {s.payment_terms}</p>}
+            {canEdit && s.is_active && (
+              <Button size="sm" variant="outline" className="mt-4 w-full" onClick={() => setQuoteFor({ ...s, price: Number(s.price) })}>
+                <FileText className="h-4 w-4" /> إنشاء عرض سعر من هذه الخدمة
+              </Button>
+            )}
           </div>
         ))}
       </div>
+      <QuoteCreateDialog open={!!quoteFor} onOpenChange={(o) => !o && setQuoteFor(null)} service={quoteFor} />
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
         <DialogContent dir="rtl">
           <DialogHeader><DialogTitle>{edit?.id ? "تعديل خدمة" : "خدمة جديدة"}</DialogTitle></DialogHeader>
@@ -88,9 +98,31 @@ function SvcForm({ initial, onSave }: { initial: Svc; onSave: (s: Svc) => void }
       <div className="space-y-2"><Label>اسم الخدمة / الباقة</Label><Input required maxLength={120} value={s.name} onChange={(e) => setS({ ...s, name: e.target.value })} /></div>
       <div className="space-y-2"><Label>الوصف</Label><Textarea maxLength={2000} value={s.description ?? ""} onChange={(e) => setS({ ...s, description: e.target.value || null })} /></div>
       <div className="space-y-2"><Label>السعر (ر.س)</Label><Input inputMode="decimal" className="num" value={String(s.price)} onChange={(e) => setS({ ...s, price: Number(e.target.value.replace(/[^\d.]/g, "")) || 0 })} /></div>
-      <div className="space-y-2"><Label>شروط السداد</Label><Input maxLength={300} placeholder="مثال: مقدم كامل / 4 دفعات أسبوعية" value={s.payment_terms ?? ""} onChange={(e) => setS({ ...s, payment_terms: e.target.value || null })} /></div>
+      <TermsField value={s.payment_terms} onChange={(v) => setS({ ...s, payment_terms: v })} />
       <label className="flex items-center justify-between text-sm">مفعّلة <Switch checked={s.is_active} onCheckedChange={(c) => setS({ ...s, is_active: c })} /></label>
       <Button type="submit">حفظ</Button>
     </form>
+  );
+}
+
+function TermsField({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  const preset = value && PAYMENT_TERMS.includes(value) ? value : value ? "__custom" : "";
+  const [custom, setCustom] = useState(preset === "__custom");
+  return (
+    <div className="space-y-2">
+      <Label>شروط السداد</Label>
+      <Select
+        value={custom ? "__custom" : preset}
+        onValueChange={(x) => { if (x === "__custom") { setCustom(true); } else { setCustom(false); onChange(x); } }}
+      >
+        <SelectTrigger><SelectValue placeholder="اختر شروط السداد" /></SelectTrigger>
+        <SelectContent>
+          {PAYMENT_TERMS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+          <SelectItem value="__custom">تخصيص يدوي...</SelectItem>
+        </SelectContent>
+      </Select>
+      {custom && <Input maxLength={300} placeholder="اكتب الشروط (مثال: 50% مقدم و50% بعد أسبوعين)" value={value ?? ""} onChange={(e) => onChange(e.target.value || null)} />}
+      {!custom && value && <Input maxLength={300} value={value} onChange={(e) => onChange(e.target.value || null)} className="text-xs" />}
+    </div>
   );
 }
