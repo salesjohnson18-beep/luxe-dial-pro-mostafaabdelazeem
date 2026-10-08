@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 import { cur } from "@/lib/crm";
 import { byPlatform, computeTotals, fmt, type Entry } from "@/lib/metrics";
 
-type Props = { title: string; dateLabel: string; entries: Entry[]; currency?: string | null };
+type Props = { title: string; dateLabel: string; entries: Entry[]; currency?: string | null | undefined };
 
 export const ReportCard = forwardRef<HTMLDivElement, Props>(({ title, dateLabel, entries, currency }, ref) => {
   const t = computeTotals(entries);

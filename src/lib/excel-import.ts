@@ -361,7 +361,7 @@ function parseMatrix(
   }
   const cols: Partial<Record<Field, string>> = { date: `أفقي: ${dateCols.length} تاريخ (${dateCols[0]!.date} → ${dateCols[dateCols.length - 1]!.date})` };
   cols.platform = platforms.length ? platforms.join("، ") : `PAID CHANNELS → ${defaultPlatform}`;
-  for (const s of seenFields) { const [f, l] = s.split("="); if (f && !cols[f as Field]) cols[f as Field] = l; }
+  for (const s of seenFields) { const [f, l] = s.split("="); if (f && !cols[f as Field]) cols[f as Field] = l ?? ""; }
   mapping.push({ sheet: sheet.name, columns: cols });
   return true;
 }
