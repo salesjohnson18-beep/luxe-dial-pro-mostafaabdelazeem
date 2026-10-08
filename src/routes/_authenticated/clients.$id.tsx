@@ -442,14 +442,14 @@ function VaultTab({ clientId }: { clientId: string }) {
                 <p className="flex-1 font-medium">{v.label}</p>
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={async () => { if (!confirm("حذف من الخزانة؟")) return; await supabase.from("client_vault").delete().eq("id", v.id); refetch(); }}><Trash2 className="h-3.5 w-3.5" /></Button>
               </div>
-              {url && <Row label="الرابط"><a href={url} target="_blank" rel="noreferrer" className="truncate text-gold hover:underline" dir="ltr">{url}</a><CopyBtn text={url} /></Row>}
-              {v.username && <Row label="المستخدم"><span className="num truncate" dir="ltr">{v.username}</span><CopyBtn text={v.username} /></Row>}
+              {url && <VRow label="الرابط"><a href={url} target="_blank" rel="noreferrer" className="truncate text-gold hover:underline" dir="ltr">{url}</a><CopyBtn text={url} /></VRow>}
+              {v.username && <VRow label="المستخدم"><span className="num truncate" dir="ltr">{v.username}</span><CopyBtn text={v.username} /></VRow>}
               {secret && (
-                <Row label={VAULT_KINDS[v.kind]?.secretLabel ?? "السر"}>
+                <VRow label={VAULT_KINDS[v.kind]?.secretLabel ?? "السر"}>
                   <span className="num truncate" dir="ltr">{v.kind === "password" && !shown[v.id] ? "••••••••" : secret}</span>
                   {v.kind === "password" && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShown((s) => ({ ...s, [v.id]: !s[v.id] }))}>{shown[v.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</Button>}
                   <CopyBtn text={secret} />
-                </Row>
+                </VRow>
               )}
               {v.notes && <p className="whitespace-pre-line text-xs text-muted-foreground">{v.notes}</p>}
             </div>
@@ -460,7 +460,7 @@ function VaultTab({ clientId }: { clientId: string }) {
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function VRow({ label, children }: { label: string; children: import("react").ReactNode }) {
   return <div className="flex items-center gap-2 text-sm"><span className="w-24 shrink-0 text-xs text-muted-foreground">{label}</span><div className="flex min-w-0 flex-1 items-center gap-1">{children}</div></div>;
 }
 
