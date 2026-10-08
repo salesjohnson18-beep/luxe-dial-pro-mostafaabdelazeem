@@ -15,6 +15,13 @@
       "when": 1791363976202,
       "tag": "0001_crm_phase2",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791418848635,
+      "tag": "0002_phase3_finance_alerts",
+      "breakpoints": true
     }
   ]
 }
