@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { INDUSTRIES } from "@/lib/metrics";
+import { INDUSTRIES, fmt } from "@/lib/metrics";
+import { CURRENCY_NAMES, PAYMENT_METHODS, cur } from "@/lib/crm";
 
 export type ClientValues = {
   client_name: string;
@@ -19,6 +20,11 @@ export type ClientValues = {
   enable_monthly_sheet: boolean;
   enable_pricing: boolean;
   enable_inventory: boolean;
+  currency: string;
+  contract_total: number | null;
+  payment_method: string;
+  installments_count: number;
+  work_start_date: string | null;
 };
 
 export const emptyClient: ClientValues = {
@@ -33,6 +39,11 @@ export const emptyClient: ClientValues = {
   enable_monthly_sheet: false,
   enable_pricing: false,
   enable_inventory: false,
+  currency: "SAR",
+  contract_total: null,
+  payment_method: "upfront",
+  installments_count: 1,
+  work_start_date: new Date().toISOString().slice(0, 10),
 };
 
 export function ClientForm({
@@ -128,6 +139,7 @@ export function ClientForm({
           </div>
         )}
       </div>
+      <FinanceFields v={v} set={set} />
       <div className="space-y-2">
         <Label>ملاحظات</Label>
         <Textarea maxLength={2000} value={v.notes ?? ""} onChange={(e) => set("notes", e.target.value || null)} />
@@ -146,5 +158,50 @@ export function ClientForm({
       </div>
       <Button type="submit" disabled={busy}>{busy ? "..." : submitLabel}</Button>
     </form>
+  );
+}
+
+function FinanceFields({ v, set }: { v: ClientValues; set: <K extends keyof ClientValues>(k: K, val: ClientValues[K]) => void }) {
+  const n = v.payment_method === "upfront" ? 1 : Math.max(1, v.installments_count || 1);
+  const per = v.contract_total ? Math.round((v.contract_total / n) * 100) / 100 : 0;
+  return (
+    <div className="space-y-4 rounded-lg border border-gold/30 p-4">
+      <p className="text-sm font-semibold text-gold">التعاقد المالي</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>العملة</Label>
+          <Select value={v.currency} onValueChange={(x) => set("currency", x)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{Object.entries(CURRENCY_NAMES).map(([k, l]) => <SelectItem key={k} value={k}>{l} ({cur(k)})</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>إجمالي قيمة التعاقد</Label>
+          <Input inputMode="decimal" className="num" value={v.contract_total ?? ""} onChange={(e) => { const x = e.target.value.replace(/[^\d.]/g, ""); set("contract_total", x ? Number(x) : null); }} />
+        </div>
+        <div className="space-y-2">
+          <Label>طريقة ودورة السداد</Label>
+          <Select value={v.payment_method} onValueChange={(x) => set("payment_method", x)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{Object.entries(PAYMENT_METHODS).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        {v.payment_method !== "upfront" && (
+          <div className="space-y-2">
+            <Label>عدد الدفعات</Label>
+            <Input type="number" min={1} max={60} className="num" value={v.installments_count} onChange={(e) => set("installments_count", Math.max(1, Number(e.target.value) || 1))} />
+          </div>
+        )}
+        <div className="space-y-2">
+          <Label>تاريخ بدء العمل</Label>
+          <Input type="date" className="num" value={v.work_start_date ?? ""} onChange={(e) => set("work_start_date", e.target.value || null)} />
+        </div>
+      </div>
+      {!!v.contract_total && (
+        <p className="text-sm text-muted-foreground">
+          قيمة كل دفعة مستحقة: <span className="num text-gold">{fmt(per, per % 1 ? 2 : 0)}</span> {cur(v.currency)} × <span className="num">{n}</span> {n > 1 ? (v.payment_method === "monthly" ? "شهرياً" : "أسبوعياً") : "(مقدم)"}
+        </p>
+      )}
+    </div>
   );
 }
