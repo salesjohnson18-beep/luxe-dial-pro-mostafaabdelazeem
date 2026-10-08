@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useMe } from "@/lib/auth";
-import { LEAD_STATUS, fmtArDate, telLink, waLink } from "@/lib/crm";
+import { CURRENCY_NAMES, LEAD_STATUS, cur, fmtArDate, telLink, waLink } from "@/lib/crm";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useStaff } from "@/lib/staff";
 
 export const Route = createFileRoute("/_authenticated/leads/")({
   head: () => ({
@@ -67,7 +69,7 @@ function LeadsPage() {
                 <h3 className="text-lg font-bold hover:text-gold">{l.client_name}</h3>
                 <p className="text-sm text-muted-foreground">{[l.project_name, l.service].filter(Boolean).join(" · ") || "—"}</p>
               </Link>
-              <p className="mt-2 text-xs text-muted-foreground">{fmtArDate(l.created_at)} · <span className="num">{count}</span> متابعة</p>
+              <p className="mt-2 text-xs text-muted-foreground">{fmtArDate(l.created_at)} · <span className="num">{count}</span> متابعة{l.rep_name ? ` · ${l.rep_name}` : ""} · {cur(l.currency)}</p>
               {l.phone && (
                 <div className="mt-4 flex gap-2">
                   <a href={telLink(l.phone)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-call px-3 py-2 text-sm text-call-foreground"><Phone className="h-4 w-4" /> اتصال</a>
@@ -82,7 +84,7 @@ function LeadsPage() {
         <DialogContent dir="rtl">
           <DialogHeader><DialogTitle>كارت متابعة جديد</DialogTitle></DialogHeader>
           <NewLeadForm
-            repName={me?.user.user_metadata?.["full_name"] ?? me?.user.email ?? ""}
+            meId={me?.user.id ?? ""}
             onCreated={(id) => { setOpen(false); nav({ to: "/leads/$id", params: { id } }); }}
           />
         </DialogContent>
@@ -91,8 +93,9 @@ function LeadsPage() {
   );
 }
 
-function NewLeadForm({ repName, onCreated }: { repName: string; onCreated: (id: string) => void }) {
-  const [f, setF] = useState({ client_name: "", project_name: "", phone: "", service: "", notes: "", rep_name: repName });
+function NewLeadForm({ meId, onCreated }: { meId: string; onCreated: (id: string) => void }) {
+  const { data: staff } = useStaff();
+  const [f, setF] = useState({ client_name: "", project_name: "", phone: "", service: "", notes: "", rep_id: meId, currency: "SAR" });
   return (
     <form
       className="space-y-3"
@@ -100,7 +103,8 @@ function NewLeadForm({ repName, onCreated }: { repName: string; onCreated: (id: 
         e.preventDefault();
         const { data, error } = await supabase.from("leads").insert({
           client_name: f.client_name.trim(), project_name: f.project_name.trim() || null, phone: f.phone.trim() || null,
-          service: f.service.trim() || null, notes: f.notes.trim() || null, rep_name: f.rep_name.trim() || null,
+          service: f.service.trim() || null, notes: f.notes.trim() || null, currency: f.currency,
+          rep_id: f.rep_id || null, rep_name: staff?.find((x) => x.id === f.rep_id)?.name ?? null,
         }).select("id").single();
         if (error) return void toast.error(error.message);
         onCreated(data.id);
@@ -110,7 +114,22 @@ function NewLeadForm({ repName, onCreated }: { repName: string; onCreated: (id: 
       <div className="space-y-1"><Label>اسم المتجر / المشروع</Label><Input maxLength={120} value={f.project_name} onChange={(e) => setF({ ...f, project_name: e.target.value })} /></div>
       <div className="space-y-1"><Label>رقم الجوال</Label><Input dir="ltr" maxLength={30} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></div>
       <div className="space-y-1"><Label>الخدمة / المنتج</Label><Input maxLength={200} value={f.service} onChange={(e) => setF({ ...f, service: e.target.value })} /></div>
-      <div className="space-y-1"><Label>المندوب</Label><Input maxLength={100} value={f.rep_name} onChange={(e) => setF({ ...f, rep_name: e.target.value })} /></div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label>مسؤول خدمة العملاء</Label>
+          <Select value={f.rep_id} onValueChange={(x) => setF({ ...f, rep_id: x })}>
+            <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+            <SelectContent>{staff?.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label>العملة</Label>
+          <Select value={f.currency} onValueChange={(x) => setF({ ...f, currency: x })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{Object.entries(CURRENCY_NAMES).map(([k, l]) => <SelectItem key={k} value={k}>{l} ({cur(k)})</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      </div>
       <div className="space-y-1"><Label>ملاحظات</Label><Textarea maxLength={2000} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></div>
       <Button type="submit">إنشاء الكارت</Button>
     </form>
