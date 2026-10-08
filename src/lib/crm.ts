@@ -48,3 +48,19 @@ export function quoteMath(items: QItem[], discount: number, paymentType: string,
   const n = paymentType === "upfront" ? 1 : Math.max(1, Math.round(installments) || 1);
   return { subtotal, total, n, per: Math.round((total / n) * 100) / 100 };
 }
+
+export const CURRENCIES: Record<string, string> = {
+  SAR: "ر.س", EGP: "ج.م", KWD: "د.ك", AED: "د.إ", QAR: "ر.ق", BHD: "د.ب", OMR: "ر.ع", USD: "$",
+};
+export const CURRENCY_NAMES: Record<string, string> = {
+  SAR: "ريال سعودي", EGP: "جنيه مصري", KWD: "دينار كويتي", AED: "درهم إماراتي", QAR: "ريال قطري", BHD: "دينار بحريني", OMR: "ريال عماني", USD: "دولار أمريكي",
+};
+export const cur = (c: string | null | undefined) => CURRENCIES[c ?? "SAR"] ?? c ?? "ر.س";
+
+export const PAYMENT_TERMS = [
+  "مقدم كامل (للخدمات المصغرة)",
+  "دفعات مجدولة (أسبوعي/شهري - فري لانس أو دوام كامل)",
+  "مؤخر عند التسليم",
+];
+
+export const PAYMENT_METHODS: Record<string, string> = { upfront: "مقدم كامل", weekly: "أسبوعي (دفعات)", monthly: "شهري" };

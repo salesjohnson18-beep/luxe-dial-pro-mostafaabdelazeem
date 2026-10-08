@@ -33,8 +33,8 @@ export function normHeader(h: unknown) {
 const SYNONYMS: [Field, string[]][] = [
   ["date", ["date", "day", "reporting starts", "reporting date", "start date", "time", "التاريخ", "تاريخ", "اليوم", "يوم"]],
   ["platform", ["platform", "channel", "source", "network", "المنصه", "القناه", "المصدر", "منصه"]],
-  ["store_orders", ["store orders", "shop orders", "طلبات المتجر", "عدد الطلبات", "الطلبات", "orders"]],
-  ["store_revenue", ["store sales", "store revenue", "shop sales", "actual sales", "total sales", "مبيعات المتجر", "مبيعات فعليه", "المبيعات الفعليه", "مبيعات"]],
+  ["store_orders", ["true purchases", "true orders", "store orders", "shop orders", "طلبات المتجر", "عدد الطلبات", "الطلبات", "orders"]],
+  ["store_revenue", ["true revenue", "true sales", "store sales", "store revenue", "shop sales", "actual sales", "total sales", "مبيعات المتجر", "مبيعات فعليه", "المبيعات الفعليه", "مبيعات"]],
   ["spend", ["amount spent", "spend", "spent", "cost", "budget used", "الصرف", "المصروف", "المنفق", "الانفاق", "التكلفه", "تكلفه", "صرف"]],
   ["impressions", ["impressions", "impr", "views", "الظهور", "مرات الظهور", "ظهور", "المشاهدات"]],
   ["clicks", ["link clicks", "clicks", "click", "swipe ups", "swipes", "النقرات", "نقرات", "الضغطات", "كليك"]],
@@ -42,7 +42,7 @@ const SYNONYMS: [Field, string[]][] = [
   ["revenue", ["purchase conversion value", "conversion value", "conv value", "purchases value", "revenue", "value", "الايراد", "ايراد", "العائد الاعلاني", "قيمه التحويل", "قيمه المشتريات"]],
 ];
 // Derived-metric columns we must never mistake for raw ones.
-const EXCLUDE = ["per ", "cpc", "ctr", "cpm", "cpa", "roas", "rate", "%", "avg", "average", "معدل", "نسبه", "متوسط", "تكلفه النقره", "تكلفه الشراء", "تكلفه الالف", "تكلفه التحويل", "لكل"];
+const EXCLUDE = ["per ", "cpc", "ctr", "cpm", "cpa", "roas", "rate", "%", "avg", "average", "معدل", "نسبه", "متوسط", "تكلفه النقره", "تكلفه الشراء", "تكلفه الالف", "تكلفه التحويل", "لكل", "offline", "profit", "overlap", "aov", "ratio", "order value", "ربح"];
 
 export function matchHeader(raw: unknown): Field | null {
   const h = normHeader(raw);
@@ -84,6 +84,17 @@ export function excelSerialToISO(n: number): string | null {
   return iso(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
 }
 
+/** Yearless dates ("1 October", "26-May"): current year, or last year if that would be >7 days in the future. */
+function inferYear(m: number, d: number): string | null {
+  const now = new Date();
+  let y = now.getFullYear();
+  const cand = new Date(Date.UTC(y, m - 1, d));
+  if (cand.getTime() - now.getTime() > 7 * 86400000) y -= 1;
+  return iso(y, m, d);
+}
+
+const isErrorCell = (v: unknown) => typeof v === "string" && /^#(ref|div\/0|value|n\/a|name|null|num|error)/i.test(v.trim());
+
 /** order: preference for ambiguous a/b/yyyy strings */
 export function parseDate(v: unknown, order: "dmy" | "mdy" = "dmy"): string | null {
   if (v == null || v === "") return null;
@@ -116,6 +127,7 @@ export function parseDate(v: unknown, order: "dmy" | "mdy" = "dmy"): string | nu
     const year = nums.find((n) => n > 31);
     const day = nums.find((n) => n >= 1 && n <= 31);
     if (year && day) return iso(year, MONTHS[monthKey]!, day);
+    if (!year && day && nums.length === 1) return inferYear(MONTHS[monthKey]!, day);
   }
   const t = Date.parse(toLatin(String(v)));
   if (!isNaN(t)) {
@@ -128,6 +140,7 @@ export function parseDate(v: unknown, order: "dmy" | "mdy" = "dmy"): string | nu
 export function parseNumber(v: unknown): number | null {
   if (v == null || v === "") return null;
   if (typeof v === "number") return isFinite(v) ? v : null;
+  if (isErrorCell(v)) return null;
   let s = toLatin(String(v)).trim();
   if (!s || s === "-" || s === "—") return 0;
   const neg = /^\(.*\)$/.test(s);
@@ -163,6 +176,7 @@ export function parseSheets(sheets: Sheet[], defaultPlatform: string = PLATFORMS
 
   for (const sheet of sheets) {
     const rows = sheet.rows;
+    if (parseMatrix(sheet, defaultPlatform, agg, storeAgg, warnings, mapping)) { rowsRead += rows.length; continue; }
     // Find header row: the row in the first 20 with the most recognized columns (needs a date column).
     let headerIdx = -1, best = 0;
     for (let i = 0; i < Math.min(rows.length, 20); i++) {
@@ -218,7 +232,7 @@ export function parseSheets(sheets: Sheet[], defaultPlatform: string = PLATFORMS
       const nums: Partial<Record<Field, number>> = {};
       for (const f of ["spend", "clicks", "impressions", "purchases", "revenue", "store_revenue", "store_orders"] as Field[]) {
         const raw = get(f);
-        if (raw === undefined || (typeof raw === "string" && raw.trim() === "")) continue;
+        if (raw === undefined || (typeof raw === "string" && raw.trim() === "") || isErrorCell(raw)) continue;
         const n = parseNumber(raw);
         if (n === null) {
           warnings.push({ sheet: sheet.name, row: excelRow, message: `قيمة غير مفهومة في "${colNames[f]}": ${String(raw)} — اعتُبرت صفراً` });
@@ -253,4 +267,101 @@ export function parseSheets(sheets: Sheet[], defaultPlatform: string = PLATFORMS
     .sort((a, b) => a.entry_date.localeCompare(b.entry_date));
   const store = [...storeAgg.values()].map((s) => ({ ...s, revenue: r2(s.revenue), orders: Math.round(s.orders) }));
   return { entries, store, warnings, mapping, rowsRead };
+}
+
+const AD_FIELDS = ["spend", "clicks", "impressions", "purchases", "revenue"] as const;
+
+/**
+ * Horizontal sheets: one header row with dates across columns, column A holds platform section
+ * labels (PAID CHANNELS, GOOGLE, Meta…) followed by metric rows (Cost, Clicks, TRUE Revenue…).
+ * Returns false if the sheet doesn't look like a matrix.
+ */
+function parseMatrix(
+  sheet: Sheet,
+  defaultPlatform: string,
+  agg: Map<string, Entry>,
+  storeAgg: Map<string, StoreRow>,
+  warnings: ImportWarning[],
+  mapping: ImportResult["mapping"],
+): boolean {
+  const rows = sheet.rows;
+  let headerIdx = -1;
+  let dateCols: { col: number; date: string }[] = [];
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const r = rows[i] ?? [];
+    if (matchHeader(r[0]) === "date" && r.slice(1).filter((c) => matchHeader(c)).length >= 2) return false; // vertical header
+    const found: { col: number; date: string }[] = [];
+    for (let c = 1; c < r.length; c++) {
+      const d = parseDate(r[c]);
+      if (d) found.push({ col: c, date: d });
+    }
+    if (found.length >= 3 && found.length > dateCols.length) { headerIdx = i; dateCols = found; }
+  }
+  if (headerIdx < 0) return false;
+  const labelCols = Math.max(1, Math.min(dateCols[0]!.col, 3));
+
+  type Bucket = Record<string, Partial<Record<Field, number>>>; // date -> field -> value
+  const sections = new Map<string, Bucket>(); // "paid" or platform name
+  const storeVals: Record<string, Partial<Record<Field, number>>> = {};
+  let section = "paid";
+  const seenFields = new Set<string>();
+
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const r = rows[i] ?? [];
+    const labels = r.slice(0, labelCols).filter((c) => typeof c === "string" && c.trim()) as string[];
+    if (!labels.length) continue;
+    for (const label of labels) {
+      const n = normHeader(label);
+      if (/paid channels|paid|القنوات المدفوعه|اجمالي القنوات/.test(n)) section = "paid";
+      else if (!matchHeader(label)) { const p = normalizePlatform(label); if (p) section = p; }
+    }
+    const field = labels.map(matchHeader).find((f) => f && f !== "date" && f !== "platform") as Field | undefined;
+    if (!field) continue;
+    seenFields.add(`${field}=${labels[labels.length - 1]}`);
+    const isStore = field === "store_revenue" || field === "store_orders";
+    for (const { col, date } of dateCols) {
+      const raw = r[col];
+      if (raw === "" || raw == null || isErrorCell(raw)) continue;
+      const v = parseNumber(raw);
+      if (v === null) {
+        warnings.push({ sheet: sheet.name, row: i + 1, message: `قيمة غير مفهومة "${String(raw)}" بتاريخ ${date} — تم تجاهلها` });
+        continue;
+      }
+      if (isStore) {
+        const b = (storeVals[date] ??= {});
+        if (b[field] === undefined) b[field] = v;
+      } else {
+        const bucket = sections.get(section) ?? {};
+        const b = (bucket[date] ??= {});
+        if (b[field] === undefined) b[field] = v;
+        sections.set(section, bucket);
+      }
+    }
+  }
+
+  const platforms = [...sections.keys()].filter((k) => k !== "paid");
+  const use: [string, Bucket][] = platforms.length
+    ? platforms.map((p) => [p, sections.get(p)!])
+    : sections.has("paid") ? [[defaultPlatform, sections.get("paid")!]] : [];
+  for (const [platform, bucket] of use) {
+    for (const [date, vals] of Object.entries(bucket)) {
+      if (!AD_FIELDS.some((f) => vals[f])) continue;
+      const key = `${date}|${platform}`;
+      const e = agg.get(key) ?? { entry_date: date, platform, spend: 0, clicks: 0, impressions: 0, purchases: 0, revenue: 0 };
+      for (const f of AD_FIELDS) e[f] += vals[f] ?? 0;
+      agg.set(key, e);
+    }
+  }
+  for (const [date, vals] of Object.entries(storeVals)) {
+    if (!vals.store_revenue && !vals.store_orders) continue;
+    const s = storeAgg.get(date) ?? { entry_date: date, revenue: 0, orders: 0 };
+    s.revenue += vals.store_revenue ?? 0;
+    s.orders += vals.store_orders ?? 0;
+    storeAgg.set(date, s);
+  }
+  const cols: Partial<Record<Field, string>> = { date: `أفقي: ${dateCols.length} تاريخ (${dateCols[0]!.date} → ${dateCols[dateCols.length - 1]!.date})` };
+  cols.platform = platforms.length ? platforms.join("، ") : `PAID CHANNELS → ${defaultPlatform}`;
+  for (const s of seenFields) { const [f, l] = s.split("="); if (f && !cols[f as Field]) cols[f as Field] = l ?? ""; }
+  mapping.push({ sheet: sheet.name, columns: cols });
+  return true;
 }

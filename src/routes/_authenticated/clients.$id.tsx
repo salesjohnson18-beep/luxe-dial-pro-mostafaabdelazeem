@@ -17,6 +17,9 @@ import { ClientForm, type ClientValues } from "@/components/ClientForm";
 import { useMe } from "@/lib/auth";
 import { PLATFORMS, computeTotals, fmt, today, type Entry } from "@/lib/metrics";
 import { parseSheets, type ImportResult } from "@/lib/excel-import";
+import { useServerFn } from "@tanstack/react-start";
+import { fetchGoogleSheet } from "@/lib/sheets.functions";
+import { RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({
@@ -56,9 +59,9 @@ function ClientPage() {
           {canEdit && <TabsTrigger value="vault">الخزانة الآمنة</TabsTrigger>}
           {canEdit && <TabsTrigger value="settings">البيانات</TabsTrigger>}
         </TabsList>
-        <TabsContent value="report" className="mt-6"><ReportTab clientId={id} title={client.project_name} token={client.share_token} /></TabsContent>
+        <TabsContent value="report" className="mt-6"><ReportTab clientId={id} title={client.project_name} token={client.share_token} currency={client.currency} /></TabsContent>
         {canEdit && <TabsContent value="entry" className="mt-6"><EntryTab clientId={id} /></TabsContent>}
-        {canEdit && <TabsContent value="import" className="mt-6"><ImportTab clientId={id} /></TabsContent>}
+        {canEdit && <TabsContent value="import" className="mt-6"><ImportTab clientId={id} sheetUrl={client.sheet_url} syncedAt={client.sheet_synced_at} onChanged={refetch} /></TabsContent>}
         {canEdit && <TabsContent value="vault" className="mt-6"><VaultTab clientId={id} /></TabsContent>}
         {canEdit && (
           <TabsContent value="settings" className="mt-6">
@@ -70,7 +73,7 @@ function ClientPage() {
   );
 }
 
-function ReportTab({ clientId, title, token }: { clientId: string; title: string; token: string }) {
+function ReportTab({ clientId, title, token, currency }: { clientId: string; title: string; token: string; currency: string }) {
   const [from, setFrom] = useState(today());
   const [to, setTo] = useState(today());
   const ref = useRef<HTMLDivElement>(null);
@@ -101,7 +104,7 @@ function ReportTab({ clientId, title, token }: { clientId: string; title: string
         <Button size="sm" onClick={download}><Download className="h-4 w-4" /> تحميل الكارت</Button>
       </div>
       <div className="p-2">
-        <ReportCard ref={ref} title={title} dateLabel={from === to ? from : `${from} → ${to}`} entries={data ?? []} />
+        <ReportCard ref={ref} title={title} dateLabel={from === to ? from : `${from} → ${to}`} entries={data ?? []} currency={currency} />
       </div>
     </div>
   );
@@ -215,29 +218,79 @@ function Metrics({ m }: { m: ReturnType<typeof computeTotals> }) {
   );
 }
 
-function ImportTab({ clientId }: { clientId: string }) {
+function workbookToSheets(data: ArrayBuffer | string, base64 = false) {
+  const wb = XLSX.read(data, { cellDates: false, raw: false, type: base64 ? "base64" : "array" });
+  return wb.SheetNames.map((name) => {
+    const ws = wb.Sheets[name]!;
+    for (const m of ws["!merges"] ?? []) {
+      const src = ws[XLSX.utils.encode_cell(m.s)];
+      if (!src) continue;
+      for (let r = m.s.r; r <= m.e.r; r++)
+        for (let c = m.s.c; c <= m.e.c; c++) {
+          const addr = XLSX.utils.encode_cell({ r, c });
+          if (!ws[addr]) ws[addr] = { ...src };
+        }
+    }
+    return { name, rows: XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true }) };
+  });
+}
+
+async function saveImport(clientId: string, result: ImportResult) {
+  const ops = [];
+  if (result.entries.length)
+    ops.push(supabase.from("campaign_entries").upsert(result.entries.map((e) => ({ client_id: clientId, ...e })), { onConflict: "client_id,entry_date,platform" }));
+  if (result.store.length)
+    ops.push(supabase.from("store_sales").upsert(result.store.map((s) => ({ client_id: clientId, ...s })), { onConflict: "client_id,entry_date" }));
+  const res = await Promise.all(ops);
+  return res.find((r) => r.error)?.error ?? null;
+}
+
+function SheetSync({ clientId, sheetUrl, syncedAt, defaultPlatform, onChanged, onResult }: { clientId: string; sheetUrl: string | null; syncedAt: string | null; defaultPlatform: string; onChanged: () => void; onResult: (r: ImportResult) => void }) {
+  const [url, setUrl] = useState(sheetUrl ?? "");
+  const [busy, setBusy] = useState(false);
+  const fetchSheet = useServerFn(fetchGoogleSheet);
+  async function sync() {
+    if (!url.trim()) return void toast.error("ضع رابط Google Sheet أولاً");
+    setBusy(true);
+    try {
+      if (url.trim() !== sheetUrl) await supabase.from("clients").update({ sheet_url: url.trim() }).eq("id", clientId);
+      const res = await fetchSheet({ data: { url: url.trim() } });
+      if (!res.ok) return void toast.error(res.error);
+      const r = parseSheets(workbookToSheets(res.base64, true), defaultPlatform);
+      onResult(r);
+      if (!r.entries.length && !r.store.length) return void toast.error("لم نجد بيانات في الشيت — راجع التحذيرات");
+      const err = await saveImport(clientId, r);
+      if (err) return void toast.error(err.message);
+      await supabase.from("clients").update({ sheet_synced_at: new Date().toISOString() }).eq("id", clientId);
+      toast.success(`تمت المزامنة: ${r.entries.length} سجل حملات و ${r.store.length} يوم مبيعات`);
+      onChanged();
+    } catch (e) {
+      toast.error("فشلت المزامنة: " + (e instanceof Error ? e.message : ""));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="space-y-3 rounded-xl border border-border bg-card p-5">
+      <p className="font-semibold">ربط Google Sheet</p>
+      <p className="text-xs text-muted-foreground">شارك الشيت بخيار «أي شخص لديه الرابط يمكنه العرض» ثم الصق الرابط. المزامنة تحدّث السجل اليومي مباشرة.</p>
+      <div className="flex flex-wrap gap-2">
+        <Input dir="ltr" className="min-w-64 flex-1" placeholder="https://docs.google.com/spreadsheets/d/..." value={url} onChange={(e) => setUrl(e.target.value)} />
+        <Button onClick={sync} disabled={busy}><RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} /> مزامنة وتحديث</Button>
+      </div>
+      {syncedAt && <p className="text-xs text-muted-foreground">آخر مزامنة: <span className="num">{new Date(syncedAt).toLocaleString("en-GB")}</span></p>}
+    </div>
+  );
+}
+
+function ImportTab({ clientId, sheetUrl, syncedAt, onChanged }: { clientId: string; sheetUrl: string | null; syncedAt: string | null; onChanged: () => void }) {
   const [result, setResult] = useState<ImportResult | null>(null);
   const [defaultPlatform, setDefaultPlatform] = useState<string>(PLATFORMS[0]);
   const [busy, setBusy] = useState(false);
 
   async function onFile(f: File) {
     try {
-      const wb = XLSX.read(await f.arrayBuffer(), { cellDates: false, raw: false });
-      const sheets = wb.SheetNames.map((name) => {
-        const ws = wb.Sheets[name]!;
-        // Fill merged cells with their top-left value so merged dates aren't lost.
-        for (const m of ws["!merges"] ?? []) {
-          const src = ws[XLSX.utils.encode_cell(m.s)];
-          if (!src) continue;
-          for (let r = m.s.r; r <= m.e.r; r++)
-            for (let c = m.s.c; c <= m.e.c; c++) {
-              const addr = XLSX.utils.encode_cell({ r, c });
-              if (!ws[addr]) ws[addr] = { ...src };
-            }
-        }
-        return { name, rows: XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true }) };
-      });
-      const r = parseSheets(sheets, defaultPlatform);
+      const r = parseSheets(workbookToSheets(await f.arrayBuffer()), defaultPlatform);
       setResult(r);
       if (!r.entries.length && !r.store.length) toast.error("لم نجد بيانات قابلة للاستيراد. راجع التحذيرات بالأسفل.");
     } catch (e) {
@@ -248,14 +301,8 @@ function ImportTab({ clientId }: { clientId: string }) {
   async function save() {
     if (!result) return;
     setBusy(true);
-    const ops = [];
-    if (result.entries.length)
-      ops.push(supabase.from("campaign_entries").upsert(result.entries.map((e) => ({ client_id: clientId, ...e })), { onConflict: "client_id,entry_date,platform" }));
-    if (result.store.length)
-      ops.push(supabase.from("store_sales").upsert(result.store.map((s) => ({ client_id: clientId, ...s })), { onConflict: "client_id,entry_date" }));
-    const res = await Promise.all(ops);
+    const err = await saveImport(clientId, result);
     setBusy(false);
-    const err = res.find((r) => r.error)?.error;
     if (err) return void toast.error(err.message);
     toast.success(`تم حفظ ${result.entries.length} سجل حملات و ${result.store.length} يوم مبيعات متجر`);
     setResult(null);
@@ -265,8 +312,9 @@ function ImportTab({ clientId }: { clientId: string }) {
 
   return (
     <div className="space-y-5">
+      <SheetSync clientId={clientId} sheetUrl={sheetUrl} syncedAt={syncedAt} defaultPlatform={defaultPlatform} onChanged={onChanged} onResult={setResult} />
       <div className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
-        ارفع الملف كما هو. النظام يتعرف تلقائياً على صف العناوين وأسماء الأعمدة بالعربي أو الإنجليزي، ويفهم كل صيغ التاريخ (أرقام إكسل، DD/MM/YYYY، MM/DD/YYYY، YYYY-MM-DD، أسماء الشهور، الأرقام العربية، والخلايا المدمجة). يقرأ كل أوراق الملف، ويجمع الحملات المتعددة في نفس اليوم والمنصة، ويتجاهل أعمدة النسب المحسوبة وصفوف الإجمالي.
+        ارفع الملف كما هو. يدعم الشيت الرأسي (عمود تاريخ) والشيت الأفقي (التواريخ بالعرض في الصف الأول والمنصات والمؤشرات في العمود A مثل PAID CHANNELS / GOOGLE / SNAPCHAT). يتجاهل أعمدة الإجمالي مثل Total May، ينظّف العملات (SAR208.00 ← 208)، ويتجاهل أخطاء الصيغ مثل #REF! و #DIV/0! دون إيقاف الاستيراد. إذا وُجدت أقسام منصات منفصلة تُحفظ كل منصة وحدها، وإلا تُحفظ أرقام PAID CHANNELS على المنصة الافتراضية.
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-2">
@@ -328,58 +376,92 @@ function ImportTab({ clientId }: { clientId: string }) {
   );
 }
 
+const VAULT_KINDS: Record<string, { label: string; fields: ("username" | "secret" | "url")[]; secretLabel?: string }> = {
+  password: { label: "حساب (مستخدم + كلمة مرور)", fields: ["url", "username", "secret"], secretLabel: "كلمة المرور" },
+  link: { label: "رابط دخول", fields: ["url"] },
+  token: { label: "توكن / بكسل", fields: ["secret"], secretLabel: "التوكن أو رقم البكسل" },
+  plan: { label: "خطة / ملاحظة", fields: [] },
+};
+const emptyVault = { kind: "password", label: "", username: "", secret: "", url: "", notes: "" };
+
+function CopyBtn({ text }: { text: string }) {
+  return <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => { navigator.clipboard.writeText(text); toast.success("تم النسخ"); }}><Copy className="h-3.5 w-3.5" /></Button>;
+}
+
 function VaultTab({ clientId }: { clientId: string }) {
-  const [form, setForm] = useState({ kind: "password", label: "", value: "", notes: "" });
+  const [form, setForm] = useState(emptyVault);
   const [shown, setShown] = useState<Record<string, boolean>>({});
   const { data, refetch } = useQuery({
     queryKey: ["vault", clientId],
     queryFn: async () => (await supabase.from("client_vault").select("*").eq("client_id", clientId).order("created_at")).data ?? [],
   });
-  const kinds: Record<string, string> = { password: "كلمة مرور", link: "رابط", plan: "خطة" };
+  const k = VAULT_KINDS[form.kind]!;
+  const set = (key: keyof typeof emptyVault, v: string) => setForm((f) => ({ ...f, [key]: v }));
 
   return (
     <div className="space-y-6">
       <form
-        className="grid gap-3 rounded-xl border border-border bg-card p-5 sm:grid-cols-5"
+        className="space-y-3 rounded-xl border border-border bg-card p-5"
         onSubmit={async (e) => {
           e.preventDefault();
-          const { error } = await supabase.from("client_vault").insert({ client_id: clientId, ...form, label: form.label.trim() });
+          const { error } = await supabase.from("client_vault").insert({
+            client_id: clientId, kind: form.kind, label: form.label.trim(),
+            username: form.username.trim() || null, secret: form.secret || null, url: form.url.trim() || null, notes: form.notes.trim() || null,
+          });
           if (error) return void toast.error(error.message);
-          setForm({ kind: form.kind, label: "", value: "", notes: "" });
+          setForm({ ...emptyVault, kind: form.kind });
+          toast.success("تم الحفظ في الخزانة");
           refetch();
         }}
       >
-        <Select value={form.kind} onValueChange={(k) => setForm((f) => ({ ...f, kind: k }))}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>{Object.entries(kinds).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
-        </Select>
-        <Input placeholder="العنوان (مثال: حساب ميتا)" required maxLength={120} value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
-        <Input placeholder="القيمة" maxLength={4000} value={form.value} onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))} />
-        <Input placeholder="ملاحظات" maxLength={1000} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
-        <Button type="submit">إضافة</Button>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label>نوع السر</Label>
+            <Select value={form.kind} onValueChange={(x) => set("kind", x)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{Object.entries(VAULT_KINDS).map(([key, v]) => <SelectItem key={key} value={key}>{v.label}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1"><Label>العنوان</Label><Input placeholder="مثال: حساب ميتا للإعلانات" required maxLength={120} value={form.label} onChange={(e) => set("label", e.target.value)} /></div>
+          {k.fields.includes("url") && <div className="space-y-1"><Label>رابط الدخول</Label><Input dir="ltr" placeholder="https://" maxLength={1000} value={form.url} onChange={(e) => set("url", e.target.value)} /></div>}
+          {k.fields.includes("username") && <div className="space-y-1"><Label>اسم المستخدم / الإيميل</Label><Input dir="ltr" maxLength={300} value={form.username} onChange={(e) => set("username", e.target.value)} /></div>}
+          {k.fields.includes("secret") && <div className="space-y-1"><Label>{k.secretLabel}</Label><Input dir="ltr" type={form.kind === "password" ? "password" : "text"} maxLength={4000} value={form.secret} onChange={(e) => set("secret", e.target.value)} /></div>}
+          <div className="space-y-1 sm:col-span-2"><Label>{form.kind === "plan" ? "الخطة / التفاصيل" : "ملاحظات (اختياري)"}</Label><Input maxLength={2000} value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+        </div>
+        <Button type="submit">إضافة للخزانة</Button>
       </form>
       {data?.length === 0 && <p className="text-sm text-muted-foreground">الخزانة فارغة.</p>}
-      <div className="space-y-2">
-        {data?.map((v) => (
-          <div key={v.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
-            <span className="rounded bg-gold-soft px-2 py-0.5 text-[11px] text-gold">{kinds[v.kind] ?? v.kind}</span>
-            <div className="flex-1">
-              <p className="font-medium">{v.label}</p>
-              <p className="num text-sm text-muted-foreground">{v.kind === "password" && !shown[v.id] ? "••••••••" : v.value}</p>
-              {v.notes && <p className="text-xs text-muted-foreground">{v.notes}</p>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {data?.map((v) => {
+          const secret = v.secret ?? (v.kind !== "link" ? v.value : null);
+          const url = v.url ?? (v.kind === "link" ? v.value : null);
+          return (
+            <div key={v.id} className="space-y-2 rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-gold-soft px-2 py-0.5 text-[11px] text-gold">{VAULT_KINDS[v.kind]?.label ?? v.kind}</span>
+                <p className="flex-1 font-medium">{v.label}</p>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={async () => { if (!confirm("حذف من الخزانة؟")) return; await supabase.from("client_vault").delete().eq("id", v.id); refetch(); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+              </div>
+              {url && <VRow label="الرابط"><a href={url} target="_blank" rel="noreferrer" className="truncate text-gold hover:underline" dir="ltr">{url}</a><CopyBtn text={url} /></VRow>}
+              {v.username && <VRow label="المستخدم"><span className="num truncate" dir="ltr">{v.username}</span><CopyBtn text={v.username} /></VRow>}
+              {secret && (
+                <VRow label={VAULT_KINDS[v.kind]?.secretLabel ?? "السر"}>
+                  <span className="num truncate" dir="ltr">{v.kind === "password" && !shown[v.id] ? "••••••••" : secret}</span>
+                  {v.kind === "password" && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShown((s) => ({ ...s, [v.id]: !s[v.id] }))}>{shown[v.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</Button>}
+                  <CopyBtn text={secret} />
+                </VRow>
+              )}
+              {v.notes && <p className="whitespace-pre-line text-xs text-muted-foreground">{v.notes}</p>}
             </div>
-            {v.kind === "password" && (
-              <Button size="icon" variant="ghost" onClick={() => setShown((s) => ({ ...s, [v.id]: !s[v.id] }))}>
-                {shown[v.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            )}
-            <Button size="icon" variant="ghost" onClick={() => { navigator.clipboard.writeText(v.value ?? ""); toast.success("تم النسخ"); }}><Copy className="h-4 w-4" /></Button>
-            <Button size="icon" variant="ghost" onClick={async () => { await supabase.from("client_vault").delete().eq("id", v.id); refetch(); }}><Trash2 className="h-4 w-4" /></Button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
+}
+
+function VRow({ label, children }: { label: string; children: import("react").ReactNode }) {
+  return <div className="flex items-center gap-2 text-sm"><span className="w-24 shrink-0 text-xs text-muted-foreground">{label}</span><div className="flex min-w-0 flex-1 items-center gap-1">{children}</div></div>;
 }
 
 function SettingsTab({ client, isAdmin, onSaved }: { client: ClientValues & { id: string }; isAdmin: boolean; onSaved: () => void }) {
@@ -402,6 +484,7 @@ function SettingsTab({ client, isAdmin, onSaved }: { client: ClientValues & { id
         onSubmit={async (v) => {
           const { error } = await supabase.from("clients").update(v).eq("id", id);
           if (error) return void toast.error(error.message);
+          if (v.contract_total) await supabase.rpc("generate_client_installments", { _client: id });
           toast.success("تم الحفظ");
           onSaved();
         }}

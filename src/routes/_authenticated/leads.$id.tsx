@@ -7,7 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useMe } from "@/lib/auth";
-import { LEAD_STATUS, OUTCOMES, fmtArDate, fmtArDateTime, telLink, waLink } from "@/lib/crm";
+import { CURRENCY_NAMES, LEAD_STATUS, OUTCOMES, cur, fmtArDate, fmtArDateTime, telLink, waLink } from "@/lib/crm";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useStaff } from "@/lib/staff";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   head: () => ({
@@ -25,6 +27,7 @@ function LeadCard() {
   const { id } = Route.useParams();
   const nav = useNavigate();
   const { data: me } = useMe();
+  const { data: staff } = useStaff();
   const canEdit = !!(me?.is("admin") || me?.is("sales"));
   const [outcome, setOutcome] = useState<string | null>(null);
   const [other, setOther] = useState("");
@@ -60,6 +63,13 @@ function LeadCard() {
     refetch();
   }
 
+  async function patch(p: { rep_id?: string; rep_name?: string | null; currency?: string }) {
+    const { error } = await supabase.from("leads").update(p).eq("id", id);
+    if (error) return void toast.error(error.message);
+    toast.success("تم التحديث");
+    refetch();
+  }
+
   async function setStatus(s: string) {
     if (s === "done") {
       const { data: cid, error } = await supabase.rpc("convert_lead_to_client", { _lead: id });
@@ -81,7 +91,7 @@ function LeadCard() {
             <span>متابعة <span className="num text-gold">#{lead.seq}</span> · {fmtArDate(lead.created_at)}</span>
             <span className={`rounded-full border px-3 py-1 ${st.cls}`}>{st.label}</span>
           </div>
-          <p className="text-sm text-muted-foreground">{lead.project_name || "—"}{lead.rep_name ? ` · المندوب: ${lead.rep_name}` : ""}</p>
+          <p className="text-sm text-muted-foreground">{lead.project_name || "—"}{lead.rep_name ? ` · مسؤول خدمة العملاء: ${lead.rep_name}` : ""} · العملة: {cur(lead.currency)}</p>
           <h1 className="text-3xl font-bold">{lead.client_name}</h1>
           {lead.service && <p className="text-gold">{lead.service}</p>}
           {lead.phone && (
@@ -91,6 +101,25 @@ function LeadCard() {
             </div>
           )}
         </div>
+
+        {canEdit && (
+          <div className="grid gap-3 border-t border-border p-6 sm:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">مسؤول خدمة العملاء</p>
+              <Select value={lead.rep_id ?? ""} onValueChange={(x) => patch({ rep_id: x, rep_name: staff?.find((u) => u.id === x)?.name ?? null })}>
+                <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                <SelectContent>{staff?.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">عملة العميل</p>
+              <Select value={lead.currency} onValueChange={(x) => patch({ currency: x })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{Object.entries(CURRENCY_NAMES).map(([k, l]) => <SelectItem key={k} value={k}>{l} ({cur(k)})</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
 
         <div className="border-t border-border p-6">
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">سجل المتابعات</h2>

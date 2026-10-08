@@ -67,3 +67,46 @@ describe("parseSheets via real xlsx", () => {
     expect(r.warnings.length).toBe(2);
   });
 });
+
+describe("horizontal matrix (Roja Rose style)", () => {
+  it("reads dates across, platforms down, skips totals/errors", () => {
+    const y = new Date().getFullYear();
+    const rows: unknown[][] = [
+      ["Months", "Total May", "", "1 October", "2 October", "3 October", "4 October", "5 October"],
+      ["PAID CHANNELS", "", "", "", "", "", "", ""],
+      ["Cost", "", "", "SAR208.00", "#REF!", "#REF!", "SAR118.00", "SAR185.00"],
+      ["Clicks", "", "", "828.00", "#REF!", "#REF!", "113.00", "229.00"],
+      ["Impressions", "", "", "14226.00", "#REF!", "#REF!", "13400.00", "10900.00"],
+      ["Purchases", "", "", "7.00", "#REF!", "#REF!", "9.00", "5.00"],
+      ["Revenue", "", "", "SAR840.00", "#REF!", "#REF!", "SAR370.00", "SAR620.00"],
+      ["Conversion Rate", "#DIV/0!", "#DIV/0!", "0.85%", "#REF!", "#REF!", "7.96%", "2.18%"],
+      ["Average Order Value", "", "", "120.0", "", "", "41.1", "124.0"],
+      ["ROAS", "", "", "4.04", "", "", "3.14", "3.35"],
+      ["TRUE Purchases", "", "", "10", "", "", "", ""],
+      ["TRUE Revenue (Salla)", "", "", "1500", "", "", "", ""],
+      ["TRUE Profit (Sella)", "", "", "300", "", "", "", ""],
+      ["Offline Revenue Snap", "", "", "99", "", "", "", ""],
+      ["GOOGLE", "", "", "", "", "", "", ""],
+      ["Cost", "", "", "100", "", "", "", ""],
+      ["Clicks", "", "", "400", "", "", "", ""],
+      ["SNAPCHAT", "", "", "", "", "", "", ""],
+      ["Cost", "", "", "108", "", "", "", ""],
+      ["Revenue", "", "", "840", "", "", "", ""],
+    ];
+    const r = parseSheets([{ name: "Sheet1", rows }]);
+    expect(r.entries.find((e) => e.platform === "Google Ads")).toMatchObject({ entry_date: `${y}-10-01`, spend: 100, clicks: 400 });
+    expect(r.entries.find((e) => e.platform === "Snapchat")).toMatchObject({ spend: 108, revenue: 840 });
+    expect(r.store).toEqual([{ entry_date: `${y}-10-01`, revenue: 1500, orders: 10 }]);
+    expect(r.warnings).toEqual([]);
+  });
+  it("only PAID CHANNELS → default platform", () => {
+    const rows: unknown[][] = [
+      ["Months", "Total May", "1 October", "26-May", "4 October"],
+      ["PAID CHANNELS"],
+      ["Cost", "", "SAR208.00", "#REF!", "SAR118.00"],
+      ["Revenue", "", "SAR840.00", "#DIV/0!", "SAR370.00"],
+    ];
+    const r = parseSheets([{ name: "Sheet1", rows }], "Meta");
+    expect(r.entries.map((e) => [e.platform, e.spend, e.revenue])).toEqual([["Meta", 208, 840], ["Meta", 118, 370]]);
+  });
+});

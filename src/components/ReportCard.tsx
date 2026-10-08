@@ -1,21 +1,23 @@
 import { forwardRef } from "react";
+import { cur } from "@/lib/crm";
 import { byPlatform, computeTotals, fmt, type Entry } from "@/lib/metrics";
 
-type Props = { title: string; dateLabel: string; entries: Entry[] };
+type Props = { title: string; dateLabel: string; entries: Entry[]; currency?: string | null | undefined };
 
-export const ReportCard = forwardRef<HTMLDivElement, Props>(({ title, dateLabel, entries }, ref) => {
+export const ReportCard = forwardRef<HTMLDivElement, Props>(({ title, dateLabel, entries, currency }, ref) => {
   const t = computeTotals(entries);
   const platforms = byPlatform(entries);
   const max = Math.max(...platforms.map((p) => p.spend), 1);
-  const cells = [
-    ["SPEND", fmt(t.spend, t.spend % 1 ? 2 : 0)],
-    ["REVENUE", fmt(t.revenue, t.revenue % 1 ? 2 : 0)],
-    ["ROAS", fmt(t.roas, 2) + "x"],
-    ["PURCHASES", fmt(t.purchases)],
-    ["CPA", fmt(t.cpa, 2)],
-    ["CPC", fmt(t.cpc, 2)],
-    ["CTR", fmt(t.ctr, 2) + "%"],
-    ["CONV. RATE", fmt(t.conv, 2) + "%"],
+  const c = cur(currency);
+  const cells: [string, string, string, string?][] = [
+    ["الصرف", "SPEND", fmt(t.spend, t.spend % 1 ? 2 : 0), c],
+    ["الإيراد", "REVENUE", fmt(t.revenue, t.revenue % 1 ? 2 : 0), c],
+    ["العائد", "ROAS", fmt(t.roas, 2) + "x"],
+    ["المشتريات", "PURCHASES", fmt(t.purchases)],
+    ["تكلفة الشراء", "CPA", fmt(t.cpa, 2), c],
+    ["تكلفة النقرة", "CPC", fmt(t.cpc, 2), c],
+    ["نسبة النقر", "CTR", fmt(t.ctr, 2) + "%"],
+    ["نسبة التحويل", "CONV. RATE", fmt(t.conv, 2) + "%"],
   ];
   return (
     <div ref={ref} className="luxe-card mx-auto w-full max-w-[680px] overflow-hidden" dir="rtl">
@@ -27,13 +29,13 @@ export const ReportCard = forwardRef<HTMLDivElement, Props>(({ title, dateLabel,
         <p className="num text-sm text-muted-foreground">{dateLabel}</p>
       </div>
       <div className="grid grid-cols-2 border-y border-border sm:grid-cols-4" dir="ltr">
-        {cells.map(([k, v], i) => (
+        {cells.map(([ar, k, v, unit], i) => (
           <div
             key={k}
             className={`p-5 text-left ${i % 4 !== 3 ? "sm:border-r" : ""} ${i < 4 ? "border-b" : ""} ${i % 2 === 0 ? "border-r sm:border-r" : ""} border-border`}
           >
-            <p className="num text-[11px] tracking-wider text-muted-foreground">{k}</p>
-            <p className="num mt-2 text-xl">{v}</p>
+            <p className="text-[11px] text-muted-foreground"><span>{ar}</span> · <span className="num tracking-wider">{k}</span></p>
+            <p className="num mt-2 text-xl">{v}{unit && <span className="ms-1 font-sans text-xs text-muted-foreground">{unit}</span>}</p>
           </div>
         ))}
       </div>
@@ -44,7 +46,7 @@ export const ReportCard = forwardRef<HTMLDivElement, Props>(({ title, dateLabel,
             <div className="flex justify-between text-sm">
               <span>{p.platform}</span>
               <span className="num text-muted-foreground">
-                {fmt(p.spend)} · {fmt(p.roas, 2)}x
+                {fmt(p.spend)} {c} · {fmt(p.roas, 2)}x
               </span>
             </div>
             <div className="mt-2 h-1.5 rounded-full bg-muted">

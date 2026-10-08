@@ -67,6 +67,7 @@ export type Database = {
           amount: number
           client_id: string
           created_at: string
+          currency: string
           due_date: string
           id: string
           number: number
@@ -80,6 +81,7 @@ export type Database = {
           amount: number
           client_id: string
           created_at?: string
+          currency?: string
           due_date: string
           id?: string
           number: number
@@ -93,6 +95,7 @@ export type Database = {
           amount?: number
           client_id?: string
           created_at?: string
+          currency?: string
           due_date?: string
           id?: string
           number?: number
@@ -126,6 +129,9 @@ export type Database = {
           kind: string
           label: string
           notes: string | null
+          secret: string | null
+          url: string | null
+          username: string | null
           value: string | null
         }
         Insert: {
@@ -135,6 +141,9 @@ export type Database = {
           kind?: string
           label: string
           notes?: string | null
+          secret?: string | null
+          url?: string | null
+          username?: string | null
           value?: string | null
         }
         Update: {
@@ -144,6 +153,9 @@ export type Database = {
           kind?: string
           label?: string
           notes?: string | null
+          secret?: string | null
+          url?: string | null
+          username?: string | null
           value?: string | null
         }
         Relationships: [
@@ -160,58 +172,139 @@ export type Database = {
         Row: {
           assigned_to: string | null
           client_name: string
+          contract_total: number | null
           contract_type: string
           created_at: string
           created_by: string
+          currency: string
           enable_inventory: boolean
           enable_monthly_sheet: boolean
           enable_pricing: boolean
           id: string
           industry: string | null
+          installments_count: number
           is_active: boolean
+          last_transfer_at: string | null
           notes: string | null
+          payment_method: string
           phone: string | null
           project_name: string
           share_token: string
+          sheet_synced_at: string | null
+          sheet_url: string | null
           transfer_cycle: string
+          work_start_date: string | null
         }
         Insert: {
           assigned_to?: string | null
           client_name: string
+          contract_total?: number | null
           contract_type?: string
           created_at?: string
           created_by?: string
+          currency?: string
           enable_inventory?: boolean
           enable_monthly_sheet?: boolean
           enable_pricing?: boolean
           id?: string
           industry?: string | null
+          installments_count?: number
           is_active?: boolean
+          last_transfer_at?: string | null
           notes?: string | null
+          payment_method?: string
           phone?: string | null
           project_name: string
           share_token?: string
+          sheet_synced_at?: string | null
+          sheet_url?: string | null
           transfer_cycle?: string
+          work_start_date?: string | null
         }
         Update: {
           assigned_to?: string | null
           client_name?: string
+          contract_total?: number | null
           contract_type?: string
           created_at?: string
           created_by?: string
+          currency?: string
           enable_inventory?: boolean
           enable_monthly_sheet?: boolean
           enable_pricing?: boolean
           id?: string
           industry?: string | null
+          installments_count?: number
           is_active?: boolean
+          last_transfer_at?: string | null
           notes?: string | null
+          payment_method?: string
           phone?: string | null
           project_name?: string
           share_token?: string
+          sheet_synced_at?: string | null
+          sheet_url?: string | null
           transfer_cycle?: string
+          work_start_date?: string | null
         }
         Relationships: []
+      }
+      finance_entries: {
+        Row: {
+          amount: number
+          category: string | null
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          entry_date: string
+          id: string
+          installment_id: string | null
+          kind: string
+          note: string | null
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          entry_date?: string
+          id?: string
+          installment_id?: string | null
+          kind?: string
+          note?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          entry_date?: string
+          id?: string
+          installment_id?: string | null
+          kind?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_entries_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "client_installments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lead_followups: {
         Row: {
@@ -259,6 +352,7 @@ export type Database = {
           client_id: string | null
           client_name: string
           created_at: string
+          currency: string
           id: string
           notes: string | null
           phone: string | null
@@ -273,6 +367,7 @@ export type Database = {
           client_id?: string | null
           client_name: string
           created_at?: string
+          currency?: string
           id?: string
           notes?: string | null
           phone?: string | null
@@ -287,6 +382,7 @@ export type Database = {
           client_id?: string | null
           client_name?: string
           created_at?: string
+          currency?: string
           id?: string
           notes?: string | null
           phone?: string | null
@@ -382,6 +478,7 @@ export type Database = {
           client_response: string | null
           created_at: string
           created_by: string | null
+          currency: string
           customer_name: string
           discount: number
           id: string
@@ -402,6 +499,7 @@ export type Database = {
           client_response?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string
           customer_name: string
           discount?: number
           id?: string
@@ -422,6 +520,7 @@ export type Database = {
           client_response?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string
           customer_name?: string
           discount?: number
           id?: string
@@ -450,6 +549,59 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminders: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          done: boolean
+          due_at: string
+          id: string
+          kind: string
+          last_done_at: string | null
+          link: string | null
+          note: string | null
+          owner_id: string
+          recurrence: string
+          title: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          done?: boolean
+          due_at?: string
+          id?: string
+          kind?: string
+          last_done_at?: string | null
+          link?: string | null
+          note?: string | null
+          owner_id?: string
+          recurrence?: string
+          title: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          done?: boolean
+          due_at?: string
+          id?: string
+          kind?: string
+          last_done_at?: string | null
+          link?: string | null
+          note?: string | null
+          owner_id?: string
+          recurrence?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -546,6 +698,10 @@ export type Database = {
       can_view_crm: { Args: never; Returns: boolean }
       convert_lead_to_client: { Args: { _lead: string }; Returns: string }
       convert_quote_to_client: { Args: { _quote: string }; Returns: string }
+      generate_client_installments: {
+        Args: { _client: string }
+        Returns: number
+      }
       get_shared_quote: { Args: { _token: string }; Returns: Json }
       get_shared_report: {
         Args: { _from: string; _to: string; _token: string }
@@ -558,6 +714,13 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      list_staff: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+        }[]
       }
       list_users: {
         Args: never
@@ -573,6 +736,10 @@ export type Database = {
       respond_quote: {
         Args: { _action: string; _note: string; _token: string }
         Returns: string
+      }
+      set_installment_paid: {
+        Args: { _id: string; _paid: boolean }
+        Returns: undefined
       }
     }
     Enums: {

@@ -65,6 +65,7 @@ function ClientsPage() {
             onSubmit={async (v) => {
               const { data, error } = await supabase.from("clients").insert(v).select("id").single();
               if (error) return void toast.error(error.message);
+              if (v.contract_total) await supabase.rpc("generate_client_installments", { _client: data.id });
               toast.success("تم إضافة العميل");
               setOpen(false);
               refetch();

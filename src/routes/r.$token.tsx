@@ -31,7 +31,7 @@ function SharedReport() {
     queryKey: ["shared", token, from, to],
     queryFn: async () => {
       const { data } = await supabase.rpc("get_shared_report", { _token: token, _from: from, _to: to });
-      return data as { client_name: string; project_name: string; entries: Entry[] } | null;
+      return data as { client_name: string; project_name: string; currency?: string; entries: Entry[] } | null;
     },
   });
 
@@ -43,7 +43,7 @@ function SharedReport() {
       ) : !data ? (
         <p className="text-center">الرابط غير صالح.</p>
       ) : (
-        <ReportCard title={data.project_name} dateLabel={from === to ? from : `${from} → ${to}`} entries={data.entries} />
+        <ReportCard title={data.project_name} dateLabel={from === to ? from : `${from} → ${to}`} entries={data.entries} currency={data.currency} />
       )}
     </div>
   );

@@ -20,6 +20,7 @@ import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads.index'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
+import { Route as AuthenticatedQuotesIdRouteImport } from './routes/_authenticated/quotes.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,6 +77,11 @@ const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
   path: '/leads/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedQuotesIdRoute = AuthenticatedQuotesIdRouteImport.update({
+  id: '/quotes/$id',
+  path: '/quotes/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/r/$token': typeof RTokenRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/quotes/$id': typeof AuthenticatedQuotesIdRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
 }
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/r/$token': typeof RTokenRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/quotes/$id': typeof AuthenticatedQuotesIdRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
 }
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/r/$token': typeof RTokenRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/_authenticated/quotes/$id': typeof AuthenticatedQuotesIdRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
 }
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/r/$token'
     | '/clients/$id'
     | '/leads/$id'
+    | '/quotes/$id'
     | '/clients/'
     | '/leads/'
   fileRoutesByTo: FileRoutesByTo
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/r/$token'
     | '/clients/$id'
     | '/leads/$id'
+    | '/quotes/$id'
     | '/clients'
     | '/leads'
   id:
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/r/$token'
     | '/_authenticated/clients/$id'
     | '/_authenticated/leads/$id'
+    | '/_authenticated/quotes/$id'
     | '/_authenticated/clients/'
     | '/_authenticated/leads/'
   fileRoutesById: FileRoutesById
@@ -241,6 +253,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/quotes/$id': {
+      id: '/_authenticated/quotes/$id'
+      path: '/quotes/$id'
+      fullPath: '/quotes/$id'
+      preLoaderRoute: typeof AuthenticatedQuotesIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -250,6 +269,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedClientsIdRoute: typeof AuthenticatedClientsIdRoute
   AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
+  AuthenticatedQuotesIdRoute: typeof AuthenticatedQuotesIdRoute
   AuthenticatedClientsIndexRoute: typeof AuthenticatedClientsIndexRoute
   AuthenticatedLeadsIndexRoute: typeof AuthenticatedLeadsIndexRoute
 }
@@ -260,6 +280,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedClientsIdRoute: AuthenticatedClientsIdRoute,
   AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
+  AuthenticatedQuotesIdRoute: AuthenticatedQuotesIdRoute,
   AuthenticatedClientsIndexRoute: AuthenticatedClientsIndexRoute,
   AuthenticatedLeadsIndexRoute: AuthenticatedLeadsIndexRoute,
 }
