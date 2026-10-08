@@ -376,58 +376,92 @@ function ImportTab({ clientId, sheetUrl, syncedAt, onChanged }: { clientId: stri
   );
 }
 
+const VAULT_KINDS: Record<string, { label: string; fields: ("username" | "secret" | "url")[]; secretLabel?: string }> = {
+  password: { label: "حساب (مستخدم + كلمة مرور)", fields: ["url", "username", "secret"], secretLabel: "كلمة المرور" },
+  link: { label: "رابط دخول", fields: ["url"] },
+  token: { label: "توكن / بكسل", fields: ["secret"], secretLabel: "التوكن أو رقم البكسل" },
+  plan: { label: "خطة / ملاحظة", fields: [] },
+};
+const emptyVault = { kind: "password", label: "", username: "", secret: "", url: "", notes: "" };
+
+function CopyBtn({ text }: { text: string }) {
+  return <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => { navigator.clipboard.writeText(text); toast.success("تم النسخ"); }}><Copy className="h-3.5 w-3.5" /></Button>;
+}
+
 function VaultTab({ clientId }: { clientId: string }) {
-  const [form, setForm] = useState({ kind: "password", label: "", value: "", notes: "" });
+  const [form, setForm] = useState(emptyVault);
   const [shown, setShown] = useState<Record<string, boolean>>({});
   const { data, refetch } = useQuery({
     queryKey: ["vault", clientId],
     queryFn: async () => (await supabase.from("client_vault").select("*").eq("client_id", clientId).order("created_at")).data ?? [],
   });
-  const kinds: Record<string, string> = { password: "كلمة مرور", link: "رابط", plan: "خطة" };
+  const k = VAULT_KINDS[form.kind]!;
+  const set = (key: keyof typeof emptyVault, v: string) => setForm((f) => ({ ...f, [key]: v }));
 
   return (
     <div className="space-y-6">
       <form
-        className="grid gap-3 rounded-xl border border-border bg-card p-5 sm:grid-cols-5"
+        className="space-y-3 rounded-xl border border-border bg-card p-5"
         onSubmit={async (e) => {
           e.preventDefault();
-          const { error } = await supabase.from("client_vault").insert({ client_id: clientId, ...form, label: form.label.trim() });
+          const { error } = await supabase.from("client_vault").insert({
+            client_id: clientId, kind: form.kind, label: form.label.trim(),
+            username: form.username.trim() || null, secret: form.secret || null, url: form.url.trim() || null, notes: form.notes.trim() || null,
+          });
           if (error) return void toast.error(error.message);
-          setForm({ kind: form.kind, label: "", value: "", notes: "" });
+          setForm({ ...emptyVault, kind: form.kind });
+          toast.success("تم الحفظ في الخزانة");
           refetch();
         }}
       >
-        <Select value={form.kind} onValueChange={(k) => setForm((f) => ({ ...f, kind: k }))}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>{Object.entries(kinds).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
-        </Select>
-        <Input placeholder="العنوان (مثال: حساب ميتا)" required maxLength={120} value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
-        <Input placeholder="القيمة" maxLength={4000} value={form.value} onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))} />
-        <Input placeholder="ملاحظات" maxLength={1000} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
-        <Button type="submit">إضافة</Button>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label>نوع السر</Label>
+            <Select value={form.kind} onValueChange={(x) => set("kind", x)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{Object.entries(VAULT_KINDS).map(([key, v]) => <SelectItem key={key} value={key}>{v.label}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1"><Label>العنوان</Label><Input placeholder="مثال: حساب ميتا للإعلانات" required maxLength={120} value={form.label} onChange={(e) => set("label", e.target.value)} /></div>
+          {k.fields.includes("url") && <div className="space-y-1"><Label>رابط الدخول</Label><Input dir="ltr" placeholder="https://" maxLength={1000} value={form.url} onChange={(e) => set("url", e.target.value)} /></div>}
+          {k.fields.includes("username") && <div className="space-y-1"><Label>اسم المستخدم / الإيميل</Label><Input dir="ltr" maxLength={300} value={form.username} onChange={(e) => set("username", e.target.value)} /></div>}
+          {k.fields.includes("secret") && <div className="space-y-1"><Label>{k.secretLabel}</Label><Input dir="ltr" type={form.kind === "password" ? "password" : "text"} maxLength={4000} value={form.secret} onChange={(e) => set("secret", e.target.value)} /></div>}
+          <div className="space-y-1 sm:col-span-2"><Label>{form.kind === "plan" ? "الخطة / التفاصيل" : "ملاحظات (اختياري)"}</Label><Input maxLength={2000} value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+        </div>
+        <Button type="submit">إضافة للخزانة</Button>
       </form>
       {data?.length === 0 && <p className="text-sm text-muted-foreground">الخزانة فارغة.</p>}
-      <div className="space-y-2">
-        {data?.map((v) => (
-          <div key={v.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
-            <span className="rounded bg-gold-soft px-2 py-0.5 text-[11px] text-gold">{kinds[v.kind] ?? v.kind}</span>
-            <div className="flex-1">
-              <p className="font-medium">{v.label}</p>
-              <p className="num text-sm text-muted-foreground">{v.kind === "password" && !shown[v.id] ? "••••••••" : v.value}</p>
-              {v.notes && <p className="text-xs text-muted-foreground">{v.notes}</p>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {data?.map((v) => {
+          const secret = v.secret ?? (v.kind !== "link" ? v.value : null);
+          const url = v.url ?? (v.kind === "link" ? v.value : null);
+          return (
+            <div key={v.id} className="space-y-2 rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-gold-soft px-2 py-0.5 text-[11px] text-gold">{VAULT_KINDS[v.kind]?.label ?? v.kind}</span>
+                <p className="flex-1 font-medium">{v.label}</p>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={async () => { if (!confirm("حذف من الخزانة؟")) return; await supabase.from("client_vault").delete().eq("id", v.id); refetch(); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+              </div>
+              {url && <Row label="الرابط"><a href={url} target="_blank" rel="noreferrer" className="truncate text-gold hover:underline" dir="ltr">{url}</a><CopyBtn text={url} /></Row>}
+              {v.username && <Row label="المستخدم"><span className="num truncate" dir="ltr">{v.username}</span><CopyBtn text={v.username} /></Row>}
+              {secret && (
+                <Row label={VAULT_KINDS[v.kind]?.secretLabel ?? "السر"}>
+                  <span className="num truncate" dir="ltr">{v.kind === "password" && !shown[v.id] ? "••••••••" : secret}</span>
+                  {v.kind === "password" && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShown((s) => ({ ...s, [v.id]: !s[v.id] }))}>{shown[v.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</Button>}
+                  <CopyBtn text={secret} />
+                </Row>
+              )}
+              {v.notes && <p className="whitespace-pre-line text-xs text-muted-foreground">{v.notes}</p>}
             </div>
-            {v.kind === "password" && (
-              <Button size="icon" variant="ghost" onClick={() => setShown((s) => ({ ...s, [v.id]: !s[v.id] }))}>
-                {shown[v.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            )}
-            <Button size="icon" variant="ghost" onClick={() => { navigator.clipboard.writeText(v.value ?? ""); toast.success("تم النسخ"); }}><Copy className="h-4 w-4" /></Button>
-            <Button size="icon" variant="ghost" onClick={async () => { await supabase.from("client_vault").delete().eq("id", v.id); refetch(); }}><Trash2 className="h-4 w-4" /></Button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="flex items-center gap-2 text-sm"><span className="w-24 shrink-0 text-xs text-muted-foreground">{label}</span><div className="flex min-w-0 flex-1 items-center gap-1">{children}</div></div>;
 }
 
 function SettingsTab({ client, isAdmin, onSaved }: { client: ClientValues & { id: string }; isAdmin: boolean; onSaved: () => void }) {
@@ -450,6 +484,7 @@ function SettingsTab({ client, isAdmin, onSaved }: { client: ClientValues & { id
         onSubmit={async (v) => {
           const { error } = await supabase.from("clients").update(v).eq("id", id);
           if (error) return void toast.error(error.message);
+          if (v.contract_total) await supabase.rpc("generate_client_installments", { _client: id });
           toast.success("تم الحفظ");
           onSaved();
         }}
