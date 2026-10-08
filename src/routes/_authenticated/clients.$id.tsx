@@ -17,6 +17,9 @@ import { ClientForm, type ClientValues } from "@/components/ClientForm";
 import { useMe } from "@/lib/auth";
 import { PLATFORMS, computeTotals, fmt, today, type Entry } from "@/lib/metrics";
 import { parseSheets, type ImportResult } from "@/lib/excel-import";
+import { useServerFn } from "@tanstack/react-start";
+import { fetchGoogleSheet } from "@/lib/sheets.functions";
+import { RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({
@@ -56,9 +59,9 @@ function ClientPage() {
           {canEdit && <TabsTrigger value="vault">الخزانة الآمنة</TabsTrigger>}
           {canEdit && <TabsTrigger value="settings">البيانات</TabsTrigger>}
         </TabsList>
-        <TabsContent value="report" className="mt-6"><ReportTab clientId={id} title={client.project_name} token={client.share_token} /></TabsContent>
+        <TabsContent value="report" className="mt-6"><ReportTab clientId={id} title={client.project_name} token={client.share_token} currency={client.currency} /></TabsContent>
         {canEdit && <TabsContent value="entry" className="mt-6"><EntryTab clientId={id} /></TabsContent>}
-        {canEdit && <TabsContent value="import" className="mt-6"><ImportTab clientId={id} /></TabsContent>}
+        {canEdit && <TabsContent value="import" className="mt-6"><ImportTab clientId={id} sheetUrl={client.sheet_url} syncedAt={client.sheet_synced_at} onChanged={refetch} /></TabsContent>}
         {canEdit && <TabsContent value="vault" className="mt-6"><VaultTab clientId={id} /></TabsContent>}
         {canEdit && (
           <TabsContent value="settings" className="mt-6">
@@ -70,7 +73,7 @@ function ClientPage() {
   );
 }
 
-function ReportTab({ clientId, title, token }: { clientId: string; title: string; token: string }) {
+function ReportTab({ clientId, title, token, currency }: { clientId: string; title: string; token: string; currency: string }) {
   const [from, setFrom] = useState(today());
   const [to, setTo] = useState(today());
   const ref = useRef<HTMLDivElement>(null);
@@ -101,7 +104,7 @@ function ReportTab({ clientId, title, token }: { clientId: string; title: string
         <Button size="sm" onClick={download}><Download className="h-4 w-4" /> تحميل الكارت</Button>
       </div>
       <div className="p-2">
-        <ReportCard ref={ref} title={title} dateLabel={from === to ? from : `${from} → ${to}`} entries={data ?? []} />
+        <ReportCard ref={ref} title={title} dateLabel={from === to ? from : `${from} → ${to}`} entries={data ?? []} currency={currency} />
       </div>
     </div>
   );
@@ -215,7 +218,72 @@ function Metrics({ m }: { m: ReturnType<typeof computeTotals> }) {
   );
 }
 
-function ImportTab({ clientId }: { clientId: string }) {
+function workbookToSheets(data: ArrayBuffer | string, base64 = false) {
+  const wb = XLSX.read(data, { cellDates: false, raw: false, type: base64 ? "base64" : "array" });
+  return wb.SheetNames.map((name) => {
+    const ws = wb.Sheets[name]!;
+    for (const m of ws["!merges"] ?? []) {
+      const src = ws[XLSX.utils.encode_cell(m.s)];
+      if (!src) continue;
+      for (let r = m.s.r; r <= m.e.r; r++)
+        for (let c = m.s.c; c <= m.e.c; c++) {
+          const addr = XLSX.utils.encode_cell({ r, c });
+          if (!ws[addr]) ws[addr] = { ...src };
+        }
+    }
+    return { name, rows: XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true }) };
+  });
+}
+
+async function saveImport(clientId: string, result: ImportResult) {
+  const ops = [];
+  if (result.entries.length)
+    ops.push(supabase.from("campaign_entries").upsert(result.entries.map((e) => ({ client_id: clientId, ...e })), { onConflict: "client_id,entry_date,platform" }));
+  if (result.store.length)
+    ops.push(supabase.from("store_sales").upsert(result.store.map((s) => ({ client_id: clientId, ...s })), { onConflict: "client_id,entry_date" }));
+  const res = await Promise.all(ops);
+  return res.find((r) => r.error)?.error ?? null;
+}
+
+function SheetSync({ clientId, sheetUrl, syncedAt, defaultPlatform, onChanged, onResult }: { clientId: string; sheetUrl: string | null; syncedAt: string | null; defaultPlatform: string; onChanged: () => void; onResult: (r: ImportResult) => void }) {
+  const [url, setUrl] = useState(sheetUrl ?? "");
+  const [busy, setBusy] = useState(false);
+  const fetchSheet = useServerFn(fetchGoogleSheet);
+  async function sync() {
+    if (!url.trim()) return void toast.error("ضع رابط Google Sheet أولاً");
+    setBusy(true);
+    try {
+      if (url.trim() !== sheetUrl) await supabase.from("clients").update({ sheet_url: url.trim() }).eq("id", clientId);
+      const res = await fetchSheet({ data: { url: url.trim() } });
+      if (!res.ok) return void toast.error(res.error);
+      const r = parseSheets(workbookToSheets(res.base64, true), defaultPlatform);
+      onResult(r);
+      if (!r.entries.length && !r.store.length) return void toast.error("لم نجد بيانات في الشيت — راجع التحذيرات");
+      const err = await saveImport(clientId, r);
+      if (err) return void toast.error(err.message);
+      await supabase.from("clients").update({ sheet_synced_at: new Date().toISOString() }).eq("id", clientId);
+      toast.success(`تمت المزامنة: ${r.entries.length} سجل حملات و ${r.store.length} يوم مبيعات`);
+      onChanged();
+    } catch (e) {
+      toast.error("فشلت المزامنة: " + (e instanceof Error ? e.message : ""));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="space-y-3 rounded-xl border border-border bg-card p-5">
+      <p className="font-semibold">ربط Google Sheet</p>
+      <p className="text-xs text-muted-foreground">شارك الشيت بخيار «أي شخص لديه الرابط يمكنه العرض» ثم الصق الرابط. المزامنة تحدّث السجل اليومي مباشرة.</p>
+      <div className="flex flex-wrap gap-2">
+        <Input dir="ltr" className="min-w-64 flex-1" placeholder="https://docs.google.com/spreadsheets/d/..." value={url} onChange={(e) => setUrl(e.target.value)} />
+        <Button onClick={sync} disabled={busy}><RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} /> مزامنة وتحديث</Button>
+      </div>
+      {syncedAt && <p className="text-xs text-muted-foreground">آخر مزامنة: <span className="num">{new Date(syncedAt).toLocaleString("en-GB")}</span></p>}
+    </div>
+  );
+}
+
+function ImportTab({ clientId, sheetUrl, syncedAt, onChanged }: { clientId: string; sheetUrl: string | null; syncedAt: string | null; onChanged: () => void }) {
   const [result, setResult] = useState<ImportResult | null>(null);
   const [defaultPlatform, setDefaultPlatform] = useState<string>(PLATFORMS[0]);
   const [busy, setBusy] = useState(false);
@@ -248,14 +316,8 @@ function ImportTab({ clientId }: { clientId: string }) {
   async function save() {
     if (!result) return;
     setBusy(true);
-    const ops = [];
-    if (result.entries.length)
-      ops.push(supabase.from("campaign_entries").upsert(result.entries.map((e) => ({ client_id: clientId, ...e })), { onConflict: "client_id,entry_date,platform" }));
-    if (result.store.length)
-      ops.push(supabase.from("store_sales").upsert(result.store.map((s) => ({ client_id: clientId, ...s })), { onConflict: "client_id,entry_date" }));
-    const res = await Promise.all(ops);
+    const err = await saveImport(clientId, result);
     setBusy(false);
-    const err = res.find((r) => r.error)?.error;
     if (err) return void toast.error(err.message);
     toast.success(`تم حفظ ${result.entries.length} سجل حملات و ${result.store.length} يوم مبيعات متجر`);
     setResult(null);
