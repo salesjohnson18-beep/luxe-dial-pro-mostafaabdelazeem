@@ -64,3 +64,8 @@ export const PAYMENT_TERMS = [
 ];
 
 export const PAYMENT_METHODS: Record<string, string> = { upfront: "مقدم كامل", weekly: "أسبوعي (دفعات)", monthly: "شهري" };
+
+function addDays(d: string, n: number) { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); }
+function addMonths(d: string, n: number) { const x = new Date(d + "T00:00:00Z"); x.setUTCMonth(x.getUTCMonth() + n); return x.toISOString().slice(0, 10); }
+/** Transfer reminder date: one cycle (7 days weekly / 1 month monthly) after the last transfer or work start. */
+export function transferDue(base: string, cycle: string) { return cycle === "monthly" ? addMonths(base, 1) : addDays(base, 7); }

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, UserCog, Contact, Package, LogOut, Briefcase } from "lucide-react";
+import { LayoutDashboard, UserCog, Contact, Package, LogOut, Briefcase, FileText, ListChecks, Wallet } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe, ROLE_LABELS } from "@/lib/auth";
 
@@ -44,8 +45,10 @@ function Shell() {
     { to: "/dashboard", label: "نظرة عامة", icon: LayoutDashboard },
     { to: "/clients", label: "العملاء", icon: Briefcase },
     ...(me?.is("admin") || me?.is("sales") || me?.is("accountant")
-      ? [{ to: "/leads", label: "المتابعة والعملاء المحتملون", icon: Contact }, { to: "/services", label: "دليل الخدمات", icon: Package }]
+      ? [{ to: "/leads", label: "المتابعة والعملاء المحتملون", icon: Contact }, { to: "/quotes", label: "عروض الأسعار", icon: FileText }, { to: "/services", label: "دليل الخدمات", icon: Package }]
       : []),
+    ...(me?.is("admin") || me?.is("accountant") ? [{ to: "/finance", label: "الماليات والدفعات", icon: Wallet }] : []),
+    { to: "/tasks", label: "المهام والتنبيهات", icon: ListChecks },
     ...(me?.is("admin") ? [{ to: "/users", label: "المستخدمون", icon: UserCog }] : []),
   ] as const;
 
@@ -80,7 +83,8 @@ function Shell() {
       <div className="flex-1">
         <header className="flex items-center justify-between border-b border-border p-3 md:hidden">
           <span className="font-bold">لوحة التشغيل</span>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            <NotificationBell />
             {links.map((l) => (
               <Link key={l.to} to={l.to} className="text-muted-foreground" activeProps={{ className: "text-gold" }}>
                 <l.icon className="h-5 w-5" />
@@ -89,6 +93,9 @@ function Shell() {
             <button onClick={signOut} className="text-muted-foreground"><LogOut className="h-5 w-5" /></button>
           </div>
         </header>
+        <div className="sticky top-0 z-30 hidden justify-end border-b border-border bg-background/80 px-8 py-2 backdrop-blur md:flex">
+          <NotificationBell />
+        </div>
         <main className="mx-auto max-w-6xl p-4 md:p-8">
           <Outlet />
         </main>

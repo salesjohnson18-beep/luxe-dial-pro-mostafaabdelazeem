@@ -10,6 +10,8 @@ import { useMe } from "@/lib/auth";
 import { CURRENCY_NAMES, LEAD_STATUS, OUTCOMES, cur, fmtArDate, fmtArDateTime, telLink, waLink } from "@/lib/crm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStaff } from "@/lib/staff";
+import { ServiceField } from "@/components/ServiceField";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   head: () => ({
@@ -63,7 +65,7 @@ function LeadCard() {
     refetch();
   }
 
-  async function patch(p: { rep_id?: string; rep_name?: string | null; currency?: string }) {
+  async function patch(p: { rep_id?: string; rep_name?: string | null; currency?: string; service?: string | null; next_followup_at?: string | null; client_name?: string; project_name?: string | null; phone?: string | null }) {
     const { error } = await supabase.from("leads").update(p).eq("id", id);
     if (error) return void toast.error(error.message);
     toast.success("تم التحديث");
@@ -110,6 +112,22 @@ function LeadCard() {
                 <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
                 <SelectContent>{staff?.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">الخدمة</p>
+              <ServiceField value={lead.service ?? ""} onChange={(v) => { if (v) patch({ service: v }); }} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">موعد المتابعة القادمة (تنبيه)</p>
+              <Input type="datetime-local" className="num" defaultValue={lead.next_followup_at ? new Date(new Date(lead.next_followup_at).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""} onBlur={(e) => patch({ next_followup_at: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">اسم العميل</p>
+              <Input defaultValue={lead.client_name} maxLength={120} onBlur={(e) => e.target.value.trim() && e.target.value !== lead.client_name && patch({ client_name: e.target.value.trim() })} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">الجوال</p>
+              <Input dir="ltr" defaultValue={lead.phone ?? ""} maxLength={30} onBlur={(e) => e.target.value !== (lead.phone ?? "") && patch({ phone: e.target.value.trim() || null })} />
             </div>
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">عملة العميل</p>
