@@ -15,11 +15,13 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedServicesRouteImport } from './routes/_authenticated/services'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as QTokenRouteImport } from './routes/q.$token'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads.index'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
+import { Route as AuthenticatedQuotesIndexRouteImport } from './routes/_authenticated/quotes.index'
 import { Route as AuthenticatedQuotesIdRouteImport } from './routes/_authenticated/quotes.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -51,6 +53,11 @@ const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const QTokenRoute = QTokenRouteImport.update({
+  id: '/q/$token',
+  path: '/q/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RTokenRoute = RTokenRouteImport.update({
   id: '/r/$token',
   path: '/r/$token',
@@ -77,6 +84,12 @@ const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
   path: '/leads/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedQuotesIndexRoute =
+  AuthenticatedQuotesIndexRouteImport.update({
+    id: '/quotes/',
+    path: '/quotes/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedQuotesIdRoute = AuthenticatedQuotesIdRouteImport.update({
   id: '/quotes/$id',
   path: '/quotes/$id',
@@ -89,12 +102,14 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/services': typeof AuthenticatedServicesRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/q/$token': typeof QTokenRoute
   '/r/$token': typeof RTokenRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/quotes/$id': typeof AuthenticatedQuotesIdRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
+  '/quotes/': typeof AuthenticatedQuotesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,12 +117,14 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/services': typeof AuthenticatedServicesRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/q/$token': typeof QTokenRoute
   '/r/$token': typeof RTokenRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/quotes/$id': typeof AuthenticatedQuotesIdRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
+  '/quotes': typeof AuthenticatedQuotesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -117,12 +134,14 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/services': typeof AuthenticatedServicesRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
+  '/q/$token': typeof QTokenRoute
   '/r/$token': typeof RTokenRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/_authenticated/quotes/$id': typeof AuthenticatedQuotesIdRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
+  '/_authenticated/quotes/': typeof AuthenticatedQuotesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,12 +151,14 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/services'
     | '/users'
+    | '/q/$token'
     | '/r/$token'
     | '/clients/$id'
     | '/leads/$id'
     | '/quotes/$id'
     | '/clients/'
     | '/leads/'
+    | '/quotes/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -145,12 +166,14 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/services'
     | '/users'
+    | '/q/$token'
     | '/r/$token'
     | '/clients/$id'
     | '/leads/$id'
     | '/quotes/$id'
     | '/clients'
     | '/leads'
+    | '/quotes'
   id:
     | '__root__'
     | '/'
@@ -159,18 +182,21 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/services'
     | '/_authenticated/users'
+    | '/q/$token'
     | '/r/$token'
     | '/_authenticated/clients/$id'
     | '/_authenticated/leads/$id'
     | '/_authenticated/quotes/$id'
     | '/_authenticated/clients/'
     | '/_authenticated/leads/'
+    | '/_authenticated/quotes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  QTokenRoute: typeof QTokenRoute
   RTokenRoute: typeof RTokenRoute
 }
 
@@ -218,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/q/$token': {
+      id: '/q/$token'
+      path: '/q/$token'
+      fullPath: '/q/$token'
+      preLoaderRoute: typeof QTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/r/$token': {
       id: '/r/$token'
       path: '/r/$token'
@@ -253,6 +286,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/quotes/': {
+      id: '/_authenticated/quotes/'
+      path: '/quotes'
+      fullPath: '/quotes/'
+      preLoaderRoute: typeof AuthenticatedQuotesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/quotes/$id': {
       id: '/_authenticated/quotes/$id'
       path: '/quotes/$id'
@@ -272,6 +312,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedQuotesIdRoute: typeof AuthenticatedQuotesIdRoute
   AuthenticatedClientsIndexRoute: typeof AuthenticatedClientsIndexRoute
   AuthenticatedLeadsIndexRoute: typeof AuthenticatedLeadsIndexRoute
+  AuthenticatedQuotesIndexRoute: typeof AuthenticatedQuotesIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -283,6 +324,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedQuotesIdRoute: AuthenticatedQuotesIdRoute,
   AuthenticatedClientsIndexRoute: AuthenticatedClientsIndexRoute,
   AuthenticatedLeadsIndexRoute: AuthenticatedLeadsIndexRoute,
+  AuthenticatedQuotesIndexRoute: AuthenticatedQuotesIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -292,6 +334,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  QTokenRoute: QTokenRoute,
   RTokenRoute: RTokenRoute,
 }
 export const routeTree = rootRouteImport
