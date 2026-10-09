@@ -13,6 +13,7 @@ import { useMe } from "@/lib/auth";
 import { CURRENCY_NAMES, LEAD_STATUS, cur, fmtArDate, telLink, waLink } from "@/lib/crm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStaff } from "@/lib/staff";
+import { ServiceField } from "@/components/ServiceField";
 
 export const Route = createFileRoute("/_authenticated/leads/")({
   head: () => ({
@@ -113,7 +114,7 @@ function NewLeadForm({ meId, onCreated }: { meId: string; onCreated: (id: string
       <div className="space-y-1"><Label>اسم العميل</Label><Input required maxLength={120} value={f.client_name} onChange={(e) => setF({ ...f, client_name: e.target.value })} /></div>
       <div className="space-y-1"><Label>اسم المتجر / المشروع</Label><Input maxLength={120} value={f.project_name} onChange={(e) => setF({ ...f, project_name: e.target.value })} /></div>
       <div className="space-y-1"><Label>رقم الجوال</Label><Input dir="ltr" maxLength={30} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></div>
-      <div className="space-y-1"><Label>الخدمة / المنتج</Label><Input maxLength={200} value={f.service} onChange={(e) => setF({ ...f, service: e.target.value })} /></div>
+      <div className="space-y-1"><Label>الخدمة / المنتج</Label><ServiceField value={f.service} onChange={(v) => setF({ ...f, service: v })} /></div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label>مسؤول خدمة العملاء</Label>
