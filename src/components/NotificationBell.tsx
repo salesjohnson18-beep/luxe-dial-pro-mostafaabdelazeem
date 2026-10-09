@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMe } from "@/lib/auth";
 import { playChime } from "@/lib/chime";
-import { cur, fmtArDateTime, waLink } from "@/lib/crm";
+import { cur, fmtArDateTime, transferDue, waLink } from "@/lib/crm";
 import { fmt, today } from "@/lib/metrics";
 import { completeReminder } from "@/routes/_authenticated/tasks";
 
@@ -16,12 +16,6 @@ type Note = {
   to: { to: string; params?: Record<string, string> }; action?: { label: string; run: () => PromiseLike<unknown> }; wa?: string;
 };
 const ICON: Record<Note["kind"], string> = { task: "✓", lead: "☎", payment: "💰", transfer: "↗" };
-
-function addDays(d: string, n: number) { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); }
-function addMonths(d: string, n: number) { const x = new Date(d + "T00:00:00Z"); x.setUTCMonth(x.getUTCMonth() + n); return x.toISOString().slice(0, 10); }
-
-/** Due transfer date for a client: one cycle after the last transfer (or work start). */
-export function transferDue(base: string, cycle: string) { return cycle === "monthly" ? addMonths(base, 1) : addDays(base, 7); }
 
 export function NotificationBell() {
   const { data: me } = useMe();
