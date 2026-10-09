@@ -354,6 +354,7 @@ export type Database = {
           created_at: string
           currency: string
           id: string
+          next_followup_at: string | null
           notes: string | null
           phone: string | null
           project_name: string | null
@@ -369,6 +370,7 @@ export type Database = {
           created_at?: string
           currency?: string
           id?: string
+          next_followup_at?: string | null
           notes?: string | null
           phone?: string | null
           project_name?: string | null
@@ -384,6 +386,7 @@ export type Database = {
           created_at?: string
           currency?: string
           id?: string
+          next_followup_at?: string | null
           notes?: string | null
           phone?: string | null
           project_name?: string | null
@@ -555,6 +558,7 @@ export type Database = {
       }
       reminders: {
         Row: {
+          assignee_id: string | null
           client_id: string | null
           created_at: string
           done: boolean
@@ -569,6 +573,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          assignee_id?: string | null
           client_id?: string | null
           created_at?: string
           done?: boolean
@@ -583,6 +588,7 @@ export type Database = {
           title: string
         }
         Update: {
+          assignee_id?: string | null
           client_id?: string | null
           created_at?: string
           done?: boolean
@@ -740,6 +746,15 @@ export type Database = {
       set_installment_paid: {
         Args: { _id: string; _paid: boolean }
         Returns: undefined
+      }
+      update_shared_quote_customer: {
+        Args: {
+          _name: string
+          _phone: string
+          _project: string
+          _token: string
+        }
+        Returns: string
       }
     }
     Enums: {
