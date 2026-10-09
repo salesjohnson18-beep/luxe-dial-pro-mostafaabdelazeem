@@ -13,7 +13,7 @@ import { completeReminder } from "@/routes/_authenticated/tasks";
 
 type Note = {
   id: string; kind: "task" | "lead" | "payment" | "transfer"; title: string; sub: string; at: string;
-  to: { to: string; params?: Record<string, string> }; action?: { label: string; run: () => Promise<unknown> }; wa?: string;
+  to: { to: string; params?: Record<string, string> }; action?: { label: string; run: () => PromiseLike<unknown> }; wa?: string;
 };
 const ICON: Record<Note["kind"], string> = { task: "✓", lead: "☎", payment: "💰", transfer: "↗" };
 
