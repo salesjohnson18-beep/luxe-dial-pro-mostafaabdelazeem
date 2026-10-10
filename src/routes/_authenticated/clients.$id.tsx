@@ -418,7 +418,7 @@ function VaultTab({ clientId }: { clientId: string }) {
     queryKey: ["vault", clientId],
     queryFn: async () => (await supabase.from("client_vault").select("*").eq("client_id", clientId).order("created_at")).data ?? [],
   });
-  const k = VAULT_KINDS[form.kind] ?? VAULT_KINDS.password;
+  const k = VAULT_KINDS[form.kind] ?? VAULT_KINDS["password"];
   if (!k) return null;
   const set = (key: keyof typeof emptyVault, v: string) => setForm((f) => ({ ...f, [key]: v }));
 
