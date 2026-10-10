@@ -1,4 +1,6 @@
 export const PLATFORMS = ["Google Ads", "Meta", "Snapchat", "TikTok", "Twitter/X"] as const;
+export const SOCIAL_PLATFORMS = ["Meta", "Snapchat", "TikTok", "Twitter/X"] as const;
+export const supportsLeads = (platform: string) => SOCIAL_PLATFORMS.some((p) => p === platform);
 
 export type Entry = {
   entry_date: string;
@@ -8,6 +10,7 @@ export type Entry = {
   impressions: number;
   purchases: number;
   revenue: number;
+  leads?: number;
 };
 
 export type Totals = ReturnType<typeof computeTotals>;
@@ -20,8 +23,10 @@ export function computeTotals(rows: Entry[]) {
       impressions: a.impressions + Number(r.impressions || 0),
       purchases: a.purchases + Number(r.purchases || 0),
       revenue: a.revenue + Number(r.revenue || 0),
+      leads: a.leads + (supportsLeads(r.platform) ? Number(r.leads || 0) : 0),
+      socialSpend: a.socialSpend + (supportsLeads(r.platform) ? Number(r.spend || 0) : 0),
     }),
-    { spend: 0, clicks: 0, impressions: 0, purchases: 0, revenue: 0 },
+    { spend: 0, clicks: 0, impressions: 0, purchases: 0, revenue: 0, leads: 0, socialSpend: 0 },
   );
   const div = (a: number, b: number) => (b ? a / b : 0);
   return {
@@ -32,6 +37,7 @@ export function computeTotals(rows: Entry[]) {
     cpm: div(t.spend, t.impressions) * 1000,
     ctr: div(t.clicks, t.impressions) * 100,
     conv: div(t.purchases, t.clicks) * 100,
+    cpl: div(t.socialSpend, t.leads),
   };
 }
 
