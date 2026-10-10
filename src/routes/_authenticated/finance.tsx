@@ -13,6 +13,8 @@ import { fmt, today } from "@/lib/metrics";
 export const Route = createFileRoute("/_authenticated/finance")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "الماليات والدفعات — لوحة التشغيل" },
       { name: "description", content: "الدفعات المستحقة والدخل والمصروفات وصافي الربح." },
       { property: "og:title", content: "الماليات والدفعات" },

@@ -24,6 +24,8 @@ import { RefreshCw } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "بروفايل العميل — لوحة التشغيل" },
       { name: "description", content: "بيانات العميل والحملات والتقارير." },
       { property: "og:title", content: "بروفايل العميل" },

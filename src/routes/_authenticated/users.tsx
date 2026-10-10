@@ -8,6 +8,8 @@ import { useMe, ROLE_LABELS, type Role } from "@/lib/auth";
 export const Route = createFileRoute("/_authenticated/users")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "المستخدمون والصلاحيات — لوحة التشغيل" },
       { name: "description", content: "إدارة المستخدمين وأدوارهم." },
       { property: "og:title", content: "المستخدمون" },
@@ -43,7 +45,7 @@ function UsersPage() {
         <p className="mt-1 text-sm text-muted-foreground">أي شخص ينشئ حساباً يظهر هنا بانتظار أن تحدد دوره.</p>
       </div>
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="text-xs text-muted-foreground">
             <tr className="border-b border-border">
               <th className="p-3 text-right">المستخدم</th>

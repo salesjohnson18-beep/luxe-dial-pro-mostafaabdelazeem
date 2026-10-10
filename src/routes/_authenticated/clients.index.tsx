@@ -12,6 +12,8 @@ import { useMe } from "@/lib/auth";
 export const Route = createFileRoute("/_authenticated/clients/")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "العملاء — لوحة التشغيل" },
       { name: "description", content: "قائمة العملاء والمشاريع." },
       { property: "og:title", content: "العملاء" },
@@ -32,7 +34,7 @@ function ClientsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-border pb-6">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border pb-5 sm:flex sm:justify-between">
         <h1 className="text-3xl font-bold">العملاء</h1>
         {me?.canEditCampaigns && (
           <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> عميل جديد</Button>

@@ -12,6 +12,8 @@ import { fmt } from "@/lib/metrics";
 export const Route = createFileRoute("/_authenticated/quotes/")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "عروض الأسعار — لوحة التشغيل" },
       { name: "description", content: "متابعة كل عروض الأسعار وحالاتها." },
       { property: "og:title", content: "عروض الأسعار" },
@@ -34,7 +36,7 @@ function QuotesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-border pb-6">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border pb-5 sm:flex sm:justify-between">
         <h1 className="text-3xl font-bold">عروض الأسعار</h1>
         {canEdit && <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> عرض سعر جديد</Button>}
       </div>
@@ -44,7 +46,7 @@ function QuotesPage() {
       </div>
       {shown.length === 0 && <div className="rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">لا توجد عروض هنا.</div>}
       <div className="overflow-x-auto rounded-xl border border-border">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-card text-muted-foreground"><tr><th className="p-3 text-start">#</th><th className="p-3 text-start">العميل</th><th className="p-3 text-start">الإجمالي</th><th className="p-3 text-start">الدفع</th><th className="p-3 text-start">التاريخ</th><th className="p-3 text-start">الحالة</th></tr></thead>
           <tbody>
             {shown.map((q) => {

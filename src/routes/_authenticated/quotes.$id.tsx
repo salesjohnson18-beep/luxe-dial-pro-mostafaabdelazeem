@@ -13,6 +13,8 @@ import { fmt } from "@/lib/metrics";
 export const Route = createFileRoute("/_authenticated/quotes/$id")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "عرض سعر — لوحة التشغيل" },
       { name: "description", content: "تعديل ومشاركة عرض السعر." },
       { property: "og:title", content: "عرض سعر" },
