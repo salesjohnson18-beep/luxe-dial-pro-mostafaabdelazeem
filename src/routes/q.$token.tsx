@@ -70,19 +70,19 @@ function SharedQuote() {
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4 py-10" dir="rtl">
       <div className="luxe-card overflow-hidden">
-        <div className="space-y-2 p-8">
-          <div className="flex items-center justify-between">
+        <div className="space-y-2 p-4 sm:p-8">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
             <p className="num text-xs tracking-[0.3em] text-gold">QUOTATION #{q.seq}</p>
             <span className={`rounded-full border px-3 py-1 text-xs ${st.cls}`}>{st.label}</span>
           </div>
-          <h1 className="text-3xl font-bold">{q.customer_name}</h1>
+          <h1 className="break-words text-2xl font-bold sm:text-3xl">{q.customer_name}</h1>
           {q.project_name && <p className="text-muted-foreground">{q.project_name}</p>}
           <p className="text-xs text-muted-foreground">{fmtArDate(q.created_at)}{q.valid_until ? ` · صالح حتى ${fmtArDate(q.valid_until)}` : ""}</p>
         </div>
         <div className="divide-y divide-border border-y border-border">
           {q.items.map((i, k) => (
-            <div key={k} className="flex gap-4 px-8 py-4">
-              <div className="flex-1">
+            <div key={k} className="grid gap-2 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4 sm:px-8">
+              <div className="min-w-0">
                 <p className="font-medium">{i.name}{i.qty > 1 && <span className="num text-muted-foreground"> × {i.qty}</span>}</p>
                 {i.description && <p className="whitespace-pre-line text-sm text-muted-foreground">{i.description}</p>}
               </div>
@@ -90,14 +90,14 @@ function SharedQuote() {
             </div>
           ))}
         </div>
-        <div className="space-y-2 px-8 py-6">
+        <div className="space-y-2 px-4 py-6 sm:px-8">
           {Number(q.discount) > 0 && <p className="flex justify-between text-sm text-muted-foreground"><span>خصم</span><span className="num">-{fmt(Number(q.discount))} {c}</span></p>}
-          <p className="flex justify-between text-xl"><span>الإجمالي</span><span className="num text-gold">{fmt(m.total)} <span className="font-sans text-sm">{c}</span></span></p>
+          <p className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 text-xl"><span>الإجمالي</span><span className="num break-all text-right text-gold">{fmt(m.total)} <span className="font-sans text-sm">{c}</span></span></p>
           <p className="text-sm text-muted-foreground">طريقة الدفع: {PAYMENT_TYPES[q.payment_type]}</p>
           {m.n > 1 && (
             <ul className="space-y-1 pt-2 text-sm">
               {Array.from({ length: m.n }, (_, i) => (
-                <li key={i} className="flex justify-between rounded border border-border px-3 py-1.5">
+                <li key={i} className="grid gap-1 rounded border border-border px-3 py-1.5 sm:grid-cols-[minmax(0,1fr)_auto]">
                   <span>الدفعة <span className="num">{i + 1}</span> من <span className="num">{m.n}</span></span>
                   <span className="num">{fmt(i === m.n - 1 ? m.total - m.per * (m.n - 1) : m.per, 2)} {c}</span>
                 </li>

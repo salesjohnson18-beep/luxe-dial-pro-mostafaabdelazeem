@@ -65,7 +65,7 @@ function FinancePage() {
           ))}
         </div>
       ))}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {([["due", "الدفعات المستحقة"], ["paid", "الدفعات المسددة"], ["ledger", "الدخل والمصروفات"]] as const).map(([k, l]) => (
           <Button key={k} size="sm" variant={tab === k ? "default" : "outline"} onClick={() => setTab(k)}>{l}</Button>
         ))}
@@ -111,7 +111,7 @@ function Ledger({ rows, onChange }: { rows: LRow[]; onChange: () => void }) {
   return (
     <div className="space-y-4">
       <form
-        className="grid gap-2 rounded-xl border border-border bg-card p-4 sm:grid-cols-7"
+        className="grid gap-2 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4"
         onSubmit={async (e) => {
           e.preventDefault();
           const amount = Number(f.amount);
@@ -139,9 +139,9 @@ function Ledger({ rows, onChange }: { rows: LRow[]; onChange: () => void }) {
       {rows.length === 0 && <p className="text-sm text-muted-foreground">لا توجد حركات.</p>}
       <div className="space-y-1">
         {rows.map((r) => (
-          <div key={r.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-2 text-sm">
-            <span className={`num w-28 ${r.kind === "income" ? "text-success" : "text-destructive"}`}>{r.kind === "income" ? "+" : "-"}{fmt(Number(r.amount))} {cur(r.currency)}</span>
-            <span className="flex-1">{r.category ?? "—"}{r.note ? ` · ${r.note}` : ""}{(r.clients as { project_name: string } | null)?.project_name ? ` · ${(r.clients as { project_name: string }).project_name}` : ""}</span>
+          <div key={r.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm sm:flex">
+            <span className={`num min-w-0 break-all sm:w-28 ${r.kind === "income" ? "text-success" : "text-destructive"}`}>{r.kind === "income" ? "+" : "-"}{fmt(Number(r.amount))} {cur(r.currency)}</span>
+            <span className="col-span-2 row-start-2 min-w-0 break-words sm:flex-1">{r.category ?? "—"}{r.note ? ` · ${r.note}` : ""}{(r.clients as { project_name: string } | null)?.project_name ? ` · ${(r.clients as { project_name: string }).project_name}` : ""}</span>
             <span className="text-xs text-muted-foreground">{fmtArDate(r.entry_date)}</span>
             {!r.installment_id && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={async () => { await supabase.from("finance_entries").delete().eq("id", r.id); onChange(); }}><Trash2 className="h-3.5 w-3.5" /></Button>}
           </div>
