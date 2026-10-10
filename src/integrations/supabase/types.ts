@@ -22,6 +22,7 @@ export type Database = {
           entry_date: string
           id: string
           impressions: number
+          leads: number
           platform: string
           purchases: number
           revenue: number
@@ -34,6 +35,7 @@ export type Database = {
           entry_date: string
           id?: string
           impressions?: number
+          leads?: number
           platform: string
           purchases?: number
           revenue?: number
@@ -46,6 +48,7 @@ export type Database = {
           entry_date?: string
           id?: string
           impressions?: number
+          leads?: number
           platform?: string
           purchases?: number
           revenue?: number
