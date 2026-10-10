@@ -91,6 +91,7 @@
   --sidebar-border: oklch(0.8 0.12 80 / 12%);
   --sidebar-ring: oklch(0.8 0.12 80 / 60%);
   --glow: 0 30px 80px -30px oklch(0.8 0.12 80 / 35%);
+  --overlay: oklch(0 0 0 / 80%);
 }
 
 @layer base {
@@ -117,4 +118,20 @@
   font-family: var(--font-mono);
   direction: ltr;
   unicode-bidi: isolate;
+}
+
+@layer base {
+  :where(h1, h2, h3, p, dd, a) { overflow-wrap: anywhere; }
+  :where(input, textarea, [role="combobox"]) { min-width: 0; max-width: 100%; }
+  .app-content :where(.grid) > * { min-width: 0; }
+  .app-content :where(.overflow-x-auto, .overflow-auto) { max-width: 100%; }
+  .app-content button { flex-shrink: 0; }
+  @media (max-width: 639px) {
+    .app-content h1 { font-size: 1.5rem; line-height: 1.4; }
+    .app-content :where(.num) { overflow-wrap: anywhere; }
+    .app-content :where(table) { min-width: 560px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
 }

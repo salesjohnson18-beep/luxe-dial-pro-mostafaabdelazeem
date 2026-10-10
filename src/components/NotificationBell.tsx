@@ -5,6 +5,7 @@ import { Bell, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 import { useMe } from "@/lib/auth";
 import { playChime } from "@/lib/chime";
 import { cur, fmtArDateTime, transferDue, waLink } from "@/lib/crm";
@@ -88,15 +89,15 @@ export function NotificationBell() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="relative rounded-full p-2 text-muted-foreground transition hover:bg-accent hover:text-foreground" aria-label="الإشعارات">
+        <Button variant="ghost" size="icon" className="relative shrink-0 text-muted-foreground" aria-label="الإشعارات">
           <Bell className="h-5 w-5" />
           {notes.length > 0 && <span className="num absolute -end-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[11px] font-bold text-primary-foreground">{notes.length > 99 ? "99+" : notes.length}</span>}
-        </button>
+        </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-96 p-0" dir="rtl">
+      <PopoverContent align="end" className="w-[min(24rem,calc(100vw-1.5rem))] p-0" dir="rtl">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <p className="font-bold">الإشعارات</p>
-          <button onClick={toggleSound} className="text-muted-foreground hover:text-gold" title={sound ? "كتم الرنة" : "تشغيل الرنة"}>{sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}</button>
+          <Button size="icon" variant="ghost" onClick={toggleSound} className="text-muted-foreground hover:text-gold" aria-label={sound ? "كتم الرنة" : "تشغيل الرنة"} title={sound ? "كتم الرنة" : "تشغيل الرنة"}>{sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}</Button>
         </div>
         <div className="max-h-[70vh] overflow-y-auto">
           {notes.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">لا توجد تنبيهات مستحقة 🎉</p>}
@@ -107,8 +108,8 @@ export function NotificationBell() {
                 <Link {...(n.to as { to: "/tasks" })} className="block text-sm font-medium hover:text-gold">{n.title}</Link>
                 <p className="text-xs text-muted-foreground">{n.sub}</p>
                 <p className="mt-0.5 text-[11px] text-gold/80">{fmtArDateTime(n.at)}</p>
-                <div className="mt-1.5 flex gap-2">
-                  {n.action && <button className="rounded border border-gold/40 px-2 py-0.5 text-xs text-gold hover:bg-gold-soft" onClick={async () => { await n.action!.run(); qc.invalidateQueries(); }}>{n.action.label}</button>}
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {n.action && <Button variant="outline" size="sm" className="h-8 px-2 text-xs text-gold" onClick={async () => { await n.action?.run(); qc.invalidateQueries(); }}>{n.action.label}</Button>}
                   {n.wa && <a href={n.wa} target="_blank" rel="noreferrer" className="rounded border border-success/40 px-2 py-0.5 text-xs text-success">واتساب</a>}
                 </div>
               </div>
