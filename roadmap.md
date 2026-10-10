@@ -1,4 +1,6 @@
 # Roadmap
+- [ ] Mobile: hamburger drawer and responsive screens/cards/tables
+- [ ] Daily campaigns: social messages/leads, cost per message, complete private/public reports
 - [x] Phase 1: auth + roles, clients, daily entry, report card + share link, dashboard, Excel import, vault
 - [x] Phase 2a: services catalog, leads list, follow-up card (lead→client)
 - [x] UX fixes: customer-service owner dropdown + currency on leads; service payment-terms presets + "quote from service"; client financial contract fields; vault structured fields; bilingual report labels + currency
