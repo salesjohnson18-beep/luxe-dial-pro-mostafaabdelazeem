@@ -9,6 +9,8 @@ import { byDay, byPlatform, computeTotals, daysAgo, fmt, today, type Entry } fro
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "نظرة عامة — لوحة التشغيل" },
       { name: "description", content: "مؤشرات الصرف والإيراد والعائد لكل العملاء." },
       { property: "og:title", content: "نظرة عامة" },
@@ -42,7 +44,7 @@ function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
+      <div className="grid gap-4 border-b border-border pb-5 lg:flex lg:items-center lg:justify-between">
         <h1 className="text-3xl font-bold">نظرة عامة</h1>
         <DateRange from={from} to={to} onChange={(f, tt) => { setFrom(f); setTo(tt); }} />
       </div>
@@ -58,7 +60,7 @@ function Dashboard() {
         <Stat label="معدل التحويل" value={`${fmt(t.conv, 2)}%`} />
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6">
         <h2 className="mb-4 font-semibold">الصرف مقابل الإيراد يومياً</h2>
         <div className="h-72" dir="ltr">
           <ResponsiveContainer>
@@ -81,7 +83,7 @@ function Dashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6">
           <h2 className="mb-4 font-semibold">الصرف حسب المنصة</h2>
           {plats.length === 0 && <p className="text-sm text-muted-foreground">لا توجد بيانات بعد</p>}
           <div className="space-y-4" dir="ltr">
@@ -98,10 +100,10 @@ function Dashboard() {
             ))}
           </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6">
           <h2 className="mb-4 font-semibold">أداء المنصات</h2>
           {plats.length === 0 && <p className="text-sm text-muted-foreground">لا توجد بيانات بعد</p>}
-          <table className="w-full text-sm" dir="ltr">
+          <div className="max-w-full overflow-x-auto"><table className="w-full text-sm" dir="ltr">
             {plats.length > 0 && (
               <thead className="text-xs text-muted-foreground">
                 <tr><th className="pb-2 text-left">Platform</th><th>ROAS</th><th>CPA</th><th>CTR</th></tr>
@@ -117,7 +119,7 @@ function Dashboard() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
     </div>

@@ -18,6 +18,8 @@ import { ServiceField } from "@/components/ServiceField";
 export const Route = createFileRoute("/_authenticated/leads/")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "العملاء المحتملون والمتابعة — لوحة التشغيل" },
       { name: "description", content: "كروت المتابعة والعملاء المحتملين." },
       { property: "og:title", content: "العملاء المحتملون" },
@@ -42,7 +44,7 @@ function LeadsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-6">
+      <div className="grid gap-3 border-b border-border pb-5 sm:flex sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold">العملاء المحتملون</h1>
         {canEdit && <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> كارت متابعة جديد</Button>}
       </div>
@@ -115,7 +117,7 @@ function NewLeadForm({ meId, onCreated }: { meId: string; onCreated: (id: string
       <div className="space-y-1"><Label>اسم المتجر / المشروع</Label><Input maxLength={120} value={f.project_name} onChange={(e) => setF({ ...f, project_name: e.target.value })} /></div>
       <div className="space-y-1"><Label>رقم الجوال</Label><Input dir="ltr" maxLength={30} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></div>
       <div className="space-y-1"><Label>الخدمة / المنتج</Label><ServiceField value={f.service} onChange={(v) => setF({ ...f, service: v })} /></div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <Label>مسؤول خدمة العملاء</Label>
           <Select value={f.rep_id} onValueChange={(x) => setF({ ...f, rep_id: x })}>

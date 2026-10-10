@@ -5,6 +5,8 @@ export const Route = createFileRoute("/")({
   ssr: false,
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "لوحة مصطفى عبدالعظيم — الدخول" },
       { name: "description", content: "نظام إدارة الحملات والعملاء والتقارير لميديا باير." },
       { property: "og:title", content: "لوحة مصطفى عبدالعظيم" },

@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "كارت المتابعة — لوحة التشغيل" },
       { name: "description", content: "سجل متابعة العميل المحتمل." },
       { property: "og:title", content: "كارت المتابعة" },
@@ -89,7 +91,7 @@ function LeadCard() {
     <div className="mx-auto max-w-2xl">
       <div className="luxe-card overflow-hidden">
         <div className="space-y-3 p-6">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 text-xs text-muted-foreground">
             <span>متابعة <span className="num text-gold">#{lead.seq}</span> · {fmtArDate(lead.created_at)}</span>
             <span className={`rounded-full border px-3 py-1 ${st.cls}`}>{st.label}</span>
           </div>
@@ -97,7 +99,7 @@ function LeadCard() {
           <h1 className="text-3xl font-bold">{lead.client_name}</h1>
           {lead.service && <p className="text-gold">{lead.service}</p>}
           {lead.phone && (
-            <div className="flex gap-2 pt-2">
+            <div className="grid gap-2 pt-2 sm:grid-cols-[minmax(0,1fr)_auto]">
               <a href={telLink(lead.phone)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-call px-4 py-3 font-medium text-call-foreground"><Phone className="h-5 w-5" /> اتصال <span className="num text-sm">{lead.phone}</span></a>
               <a href={waLink(lead.phone)} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-lg border border-success/40 px-4 py-3 text-success"><MessageCircle className="h-5 w-5" /> واتساب</a>
             </div>
@@ -146,7 +148,7 @@ function LeadCard() {
             {data.followups.map((f) => (
               <li key={f.id} className="flex gap-3 rounded-lg border border-border bg-card p-3 text-sm">
                 <span className="num flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gold-soft text-gold">{f.attempt_no}</span>
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <p className="font-medium">{f.outcome}</p>
                   {f.note && <p className="text-muted-foreground">{f.note}</p>}
                   <p className="mt-1 text-xs text-muted-foreground">{f.caller_name} · {fmtArDateTime(f.created_at)}</p>

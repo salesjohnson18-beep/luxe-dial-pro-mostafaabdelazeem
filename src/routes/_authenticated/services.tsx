@@ -19,6 +19,8 @@ import { fmt } from "@/lib/metrics";
 export const Route = createFileRoute("/_authenticated/services")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "دليل الخدمات — لوحة التشغيل" },
       { name: "description", content: "باقات الخدمات وأسعارها وشروط السداد." },
       { property: "og:title", content: "دليل الخدمات" },
@@ -52,7 +54,7 @@ function ServicesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-border pb-6">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border pb-5 sm:flex sm:justify-between">
         <h1 className="text-3xl font-bold">دليل الخدمات</h1>
         {canEdit && <Button onClick={() => setEdit(empty)}><Plus className="h-4 w-4" /> خدمة جديدة</Button>}
       </div>
@@ -60,7 +62,7 @@ function ServicesPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {data?.map((s) => (
           <div key={s.id} className={`rounded-xl border border-border bg-card p-5 ${s.is_active ? "" : "opacity-50"}`}>
-            <div className="flex items-start justify-between gap-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
               <h3 className="text-lg font-semibold">{s.name}</h3>
               {canEdit && (
                 <div className="flex">
@@ -73,7 +75,7 @@ function ServicesPage() {
             <p className="num mt-4 text-2xl text-gold">{fmt(Number(s.price))} <span className="font-sans text-sm">ر.س</span></p>
             {s.payment_terms && <p className="mt-1 text-xs text-muted-foreground">شروط السداد: {s.payment_terms}</p>}
             {canEdit && s.is_active && (
-              <Button size="sm" variant="outline" className="mt-4 w-full" onClick={() => setQuoteFor({ ...s, price: Number(s.price) })}>
+              <Button size="sm" variant="outline" className="mt-4 h-auto min-h-9 w-full whitespace-normal py-2" onClick={() => setQuoteFor({ ...s, price: Number(s.price) })}>
                 <FileText className="h-4 w-4" /> إنشاء عرض سعر من هذه الخدمة
               </Button>
             )}

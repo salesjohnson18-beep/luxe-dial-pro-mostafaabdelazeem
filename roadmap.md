@@ -1,4 +1,7 @@
 # Roadmap
+- [x] Mobile: hamburger drawer and responsive screens/cards/tables
+- [x] Daily campaigns: social messages/leads, cost per message, complete private/public reports (30 tests passed; real public report checked at 320/390/768/1280)
+- [ ] Authenticated mobile drawer + daily save end-to-end verification — blocked: preview signed out; session mint cannot match requester; user must sign in
 - [x] Phase 1: auth + roles, clients, daily entry, report card + share link, dashboard, Excel import, vault
 - [x] Phase 2a: services catalog, leads list, follow-up card (lead→client)
 - [x] UX fixes: customer-service owner dropdown + currency on leads; service payment-terms presets + "quote from service"; client financial contract fields; vault structured fields; bilingual report labels + currency

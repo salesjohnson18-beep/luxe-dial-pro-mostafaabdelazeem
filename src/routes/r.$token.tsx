@@ -17,6 +17,8 @@ export const Route = createFileRoute("/r/$token")({
       { property: "og:title", content: "تقرير الأداء" },
       { property: "og:description", content: "تقرير أداء الحملات الإعلانية التفاعلي." },
       { name: "robots", content: "noindex" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: SharedReport,
@@ -36,7 +38,7 @@ function SharedReport() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-4 py-10">
+    <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6 p-3 py-6 sm:p-4 sm:py-10">
       <div className="flex justify-center"><DateRange from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t); }} /></div>
       {isLoading ? (
         <p className="text-center text-muted-foreground">جارِ التحميل...</p>

@@ -16,6 +16,8 @@ import { fmtArDateTime } from "@/lib/crm";
 export const Route = createFileRoute("/_authenticated/tasks")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "المهام والتنبيهات — لوحة التشغيل" },
       { name: "description", content: "المهام اليومية والمتكررة وحملاتي الشخصية." },
       { property: "og:title", content: "المهام والتنبيهات" },
@@ -68,11 +70,11 @@ function TasksPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-border pb-6">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border pb-5 sm:flex sm:justify-between">
         <h1 className="text-3xl font-bold">المهام والتنبيهات</h1>
         <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> مهمة / تذكير</Button>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {([["open", "المفتوحة"], ["personal", "حملاتي وإعلاناتي"], ["done", "المنجزة"]] as const).map(([k, l]) => (
           <Button key={k} size="sm" variant={tab === k ? "default" : "outline"} onClick={() => setTab(k)}>{l}</Button>
         ))}
@@ -139,7 +141,7 @@ function NewTask({ meId, onDone }: { meId: string; onDone: () => void }) {
       }}
     >
       <div className="space-y-1"><Label>العنوان</Label><Input required maxLength={200} placeholder="مثال: تجديد إعلانات حراج" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1"><Label>النوع</Label>
           <Select value={f.kind} onValueChange={(x) => setF({ ...f, kind: x, recurrence: x === "haraj" ? "daily" : f.recurrence })}>
             <SelectTrigger><SelectValue /></SelectTrigger>

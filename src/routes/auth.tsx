@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "تسجيل الدخول — لوحة مصطفى عبدالعظيم" },
       { name: "description", content: "سجّل الدخول لإدارة العملاء والحملات والتقارير." },
       { property: "og:title", content: "تسجيل الدخول" },

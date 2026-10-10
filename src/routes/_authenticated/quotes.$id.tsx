@@ -13,6 +13,8 @@ import { fmt } from "@/lib/metrics";
 export const Route = createFileRoute("/_authenticated/quotes/$id")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "عرض سعر — لوحة التشغيل" },
       { name: "description", content: "تعديل ومشاركة عرض السعر." },
       { property: "og:title", content: "عرض سعر" },
@@ -57,8 +59,8 @@ function QuotePage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex items-center justify-between border-b border-border pb-6">
-        <div>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-border pb-5">
+        <div className="min-w-0">
           <p className="num text-xs text-gold">QUOTE #{q.seq}</p>
           <h1 className="text-3xl font-bold">{q.customer_name}</h1>
           <p className="text-muted-foreground">{q.project_name}</p>
@@ -84,10 +86,10 @@ function QuotePage() {
       <div className="space-y-2 rounded-xl border border-border bg-card p-5">
         {data.items.length === 0 && <p className="text-sm text-muted-foreground">لا توجد بنود.</p>}
         {data.items.map((i) => (
-          <div key={i.id} className="flex items-center gap-2">
-            <span className="flex-1">{i.name}</span>
-            <Input className="num w-28" defaultValue={String(i.price)} onBlur={(e) => updItem(i.id, { price: Number(e.target.value) || 0 })} />
-            <Input className="num w-16" type="number" min={1} defaultValue={i.qty} onBlur={(e) => updItem(i.id, { qty: Math.max(1, Number(e.target.value) || 1) })} />
+          <div key={i.id} className="grid grid-cols-[minmax(0,1fr)_4rem_auto] items-center gap-2 border-b border-border pb-3 sm:grid-cols-[minmax(0,1fr)_7rem_4rem_auto] sm:border-0 sm:pb-0">
+            <span className="col-span-3 min-w-0 sm:col-span-1">{i.name}</span>
+            <Input aria-label={`سعر ${i.name}`} className="num min-w-0 w-full" defaultValue={String(i.price)} onBlur={(e) => updItem(i.id, { price: Number(e.target.value) || 0 })} />
+            <Input aria-label={`كمية ${i.name}`} className="num w-full" type="number" min={1} defaultValue={i.qty} onBlur={(e) => updItem(i.id, { qty: Math.max(1, Number(e.target.value) || 1) })} />
             <Button size="icon" variant="ghost" onClick={async () => { await supabase.from("quote_items").delete().eq("id", i.id); refetch(); }}><Trash2 className="h-4 w-4" /></Button>
           </div>
         ))}
@@ -96,7 +98,7 @@ function QuotePage() {
           await supabase.from("quote_items").insert({ quote_id: id, service_id: sv.id, name: sv.name, description: sv.description, price: sv.price, qty: 1, position: data.items.length });
           refetch();
         }}>
-          <SelectTrigger className="w-64"><SelectValue placeholder="+ إضافة خدمة من الدليل" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-64"><SelectValue placeholder="+ إضافة خدمة من الدليل" /></SelectTrigger>
           <SelectContent>{services?.map((sv) => <SelectItem key={sv.id} value={sv.id}>{sv.name}</SelectItem>)}</SelectContent>
         </Select>
         <div className="flex items-center gap-2 pt-2 text-sm">

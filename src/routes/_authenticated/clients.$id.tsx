@@ -15,7 +15,7 @@ import { ReportCard } from "@/components/ReportCard";
 import { DateRange } from "@/components/DateRange";
 import { ClientForm, type ClientValues } from "@/components/ClientForm";
 import { useMe } from "@/lib/auth";
-import { PLATFORMS, computeTotals, fmt, today, type Entry } from "@/lib/metrics";
+import { PLATFORMS, computeTotals, fmt, today, supportsLeads, type Entry } from "@/lib/metrics";
 import { parseSheets, type ImportResult } from "@/lib/excel-import";
 import { useServerFn } from "@tanstack/react-start";
 import { fetchGoogleSheet } from "@/lib/sheets.functions";
@@ -24,6 +24,8 @@ import { RefreshCw } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "بروفايل العميل — لوحة التشغيل" },
       { name: "description", content: "بيانات العميل والحملات والتقارير." },
       { property: "og:title", content: "بروفايل العميل" },
@@ -48,11 +50,11 @@ function ClientPage() {
     <div className="space-y-6">
       <div className="border-b border-border pb-6">
         <p className="text-xs text-gold">{client.industry || "—"}</p>
-        <h1 className="text-3xl font-bold">{client.project_name}</h1>
+        <h1 className="break-words text-2xl font-bold sm:text-3xl">{client.project_name}</h1>
         <p className="text-muted-foreground">{client.client_name}</p>
       </div>
       <Tabs defaultValue="report" dir="rtl">
-        <TabsList className="flex-wrap">
+        <TabsList className="h-auto max-w-full flex-wrap justify-start gap-1">
           <TabsTrigger value="report">تقرير العميل</TabsTrigger>
           {canEdit && <TabsTrigger value="entry">الإدخال اليومي</TabsTrigger>}
           {canEdit && <TabsTrigger value="import">استيراد إكسل</TabsTrigger>}
@@ -80,7 +82,7 @@ function ReportTab({ clientId, title, token, currency }: { clientId: string; tit
   const { data } = useQuery({
     queryKey: ["entries", clientId, from, to],
     queryFn: async () =>
-      ((await supabase.from("campaign_entries").select("entry_date,platform,spend,clicks,impressions,purchases,revenue").eq("client_id", clientId).gte("entry_date", from).lte("entry_date", to)).data ?? []) as Entry[],
+      ((await supabase.from("campaign_entries").select("entry_date,platform,spend,clicks,impressions,purchases,revenue,leads").eq("client_id", clientId).gte("entry_date", from).lte("entry_date", to)).data ?? []) as Entry[],
   });
 
   async function download() {
@@ -110,9 +112,9 @@ function ReportTab({ clientId, title, token, currency }: { clientId: string; tit
   );
 }
 
-type Row = { spend: string; clicks: string; impressions: string; purchases: string; revenue: string };
-const emptyRow: Row = { spend: "", clicks: "", impressions: "", purchases: "", revenue: "" };
-const FIELDS: [keyof Row, string][] = [["spend", "الصرف"], ["clicks", "النقرات"], ["impressions", "الظهور"], ["purchases", "المشتريات"], ["revenue", "الإيراد"]];
+type Row = { spend: string; clicks: string; impressions: string; purchases: string; revenue: string; leads: string };
+const emptyRow: Row = { spend: "", clicks: "", impressions: "", purchases: "", revenue: "", leads: "" };
+const FIELDS: [keyof Row, string][] = [["spend", "الصرف"], ["clicks", "النقرات"], ["impressions", "الظهور"], ["purchases", "المشتريات"], ["revenue", "الإيراد"], ["leads", "رسائل / ليدز"]];
 
 function EntryTab({ clientId }: { clientId: string }) {
   const [date, setDate] = useState(today());
@@ -128,7 +130,7 @@ function EntryTab({ clientId }: { clientId: string }) {
       ]);
       const r: Record<string, Row> = {};
       PLATFORMS.forEach((p) => (r[p] = { ...emptyRow }));
-      e.data?.forEach((x) => (r[x.platform] = { spend: String(x.spend), clicks: String(x.clicks), impressions: String(x.impressions), purchases: String(x.purchases), revenue: String(x.revenue) }));
+      e.data?.forEach((x) => (r[x.platform] = { spend: String(x.spend), clicks: String(x.clicks), impressions: String(x.impressions), purchases: String(x.purchases), revenue: String(x.revenue), leads: supportsLeads(x.platform) ? String(x.leads) : "" }));
       setRows(r);
       setStore({ revenue: s.data ? String(s.data.revenue) : "", orders: s.data ? String(s.data.orders) : "" });
     })();
@@ -138,10 +140,12 @@ function EntryTab({ clientId }: { clientId: string }) {
     entry_date: date, platform: p,
     spend: Number(r.spend) || 0, clicks: Math.round(Number(r.clicks) || 0), impressions: Math.round(Number(r.impressions) || 0),
     purchases: Math.round(Number(r.purchases) || 0), revenue: Number(r.revenue) || 0,
+    leads: supportsLeads(p) ? Math.round(Number(r.leads) || 0) : 0,
   });
   const all = Object.entries(rows).map(([p, r]) => asEntry(p, r));
   const total = computeTotals(all);
   const storeRev = Number(store.revenue) || 0;
+  const updateRow = (platform: string, field: keyof Row, value: string) => setRows((s) => ({ ...s, [platform]: { ...(s[platform] ?? emptyRow), [field]: value.replace(field === "spend" || field === "revenue" ? /[^\d.]/g : /\D/g, "") } }));
 
   async function save() {
     setBusy(true);
@@ -165,13 +169,31 @@ function EntryTab({ clientId }: { clientId: string }) {
         <Label>التاريخ</Label>
         <Input type="date" className="num w-44" value={date} onChange={(e) => setDate(e.target.value)} />
       </div>
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <table className="w-full min-w-[900px] text-sm" dir="ltr">
+      <div className="grid gap-4 md:hidden">
+        {Object.entries(rows).map(([p, r]) => {
+          const m = computeTotals([asEntry(p, r)]);
+          return <section key={p} className="min-w-0 rounded-lg border border-border bg-card p-4">
+            <h2 className="mb-4 font-semibold text-gold" dir="ltr">{p}</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {FIELDS.filter(([k]) => k !== "leads" || supportsLeads(p)).map(([k, label]) => <label key={k} className="min-w-0 space-y-2 text-xs text-muted-foreground">{label}<Input aria-label={`${p} ${label}`} inputMode={k === "spend" || k === "revenue" ? "decimal" : "numeric"} className="num mt-2 min-w-0" value={r[k]} onChange={(e) => updateRow(p, k, e.target.value)} /></label>)}
+            </div>
+            <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-3 text-xs">
+              {[["ROAS", fmt(m.roas, 2) + "x"], ["CPA", fmt(m.cpa, 2)], ["CPC", fmt(m.cpc, 2)], ["CPM", fmt(m.cpm, 2)], ["CTR", fmt(m.ctr, 2) + "%"], ["CONV", fmt(m.conv, 2) + "%"], ...(supportsLeads(p) ? [["تكلفة الرسالة", fmt(m.cpl, 2)]] : [])].map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-muted-foreground">{label}</dt><dd className="num mt-1 break-all">{value}</dd></div>)}
+            </dl>
+          </section>;
+        })}
+        <section className="rounded-lg border border-border bg-gold-soft p-4">
+          <h2 className="mb-3 text-sm font-semibold text-gold" dir="ltr">PAID CHANNELS</h2>
+          <dl className="grid grid-cols-2 gap-3 text-xs">{FIELDS.map(([k, label]) => <div key={k} className="min-w-0"><dt className="text-muted-foreground">{label}</dt><dd className="num mt-1 break-all">{fmt(total[k], k === "spend" || k === "revenue" ? 2 : 0)}</dd></div>)}<div><dt className="text-muted-foreground">تكلفة الرسالة</dt><dd className="num mt-1">{fmt(total.cpl, 2)}</dd></div></dl>
+        </section>
+      </div>
+      <div className="hidden max-w-full overflow-x-auto rounded-lg border border-border bg-card md:block">
+        <table className="w-full min-w-[1100px] text-sm" dir="ltr">
           <thead className="text-xs text-muted-foreground">
             <tr className="border-b border-border">
               <th className="p-3 text-left">Platform</th>
-              {FIELDS.map(([k]) => <th key={k} className="p-3 capitalize">{k}</th>)}
-              {["ROAS", "CPA", "CPC", "CPM", "CTR", "CONV"].map((h) => <th key={h} className="p-3">{h}</th>)}
+              {FIELDS.map(([k, label]) => <th key={k} className="p-3 capitalize">{label} · {k}</th>)}
+              {["ROAS", "CPA", "CPC", "CPM", "CTR", "CONV", "COST / LEAD"].map((h) => <th key={h} className="p-3">{h}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -182,10 +204,10 @@ function EntryTab({ clientId }: { clientId: string }) {
                   <td className="p-2 font-medium">{p}</td>
                   {FIELDS.map(([k]) => (
                     <td key={k} className="p-1">
-                      <Input inputMode="decimal" className="num h-8 w-24 text-center" value={r[k]} onChange={(e) => setRows((s) => ({ ...s, [p]: { ...(s[p] ?? emptyRow), [k]: e.target.value.replace(/[^\d.]/g, "") } }))} />
+                      {k === "leads" && !supportsLeads(p) ? <span className="block text-center text-muted-foreground">—</span> : <Input aria-label={`${p} ${k}`} inputMode={k === "spend" || k === "revenue" ? "decimal" : "numeric"} className="num h-8 w-24 text-center" value={r[k]} onChange={(e) => updateRow(p, k, e.target.value)} />}
                     </td>
                   ))}
-                  <Metrics m={m} />
+                  <Metrics m={m} social={supportsLeads(p)} />
                 </tr>
               );
             })}
@@ -208,10 +230,10 @@ function EntryTab({ clientId }: { clientId: string }) {
   );
 }
 
-function Metrics({ m }: { m: ReturnType<typeof computeTotals> }) {
+function Metrics({ m, social = true }: { m: ReturnType<typeof computeTotals>; social?: boolean }) {
   return (
     <>
-      {[fmt(m.roas, 2) + "x", fmt(m.cpa, 2), fmt(m.cpc, 2), fmt(m.cpm, 2), fmt(m.ctr, 2) + "%", fmt(m.conv, 2) + "%"].map((v, i) => (
+      {[fmt(m.roas, 2) + "x", fmt(m.cpa, 2), fmt(m.cpc, 2), fmt(m.cpm, 2), fmt(m.ctr, 2) + "%", fmt(m.conv, 2) + "%", social ? fmt(m.cpl, 2) : "—"].map((v, i) => (
         <td key={i} className="num p-3 text-center text-muted-foreground">{v}</td>
       ))}
     </>
@@ -221,7 +243,8 @@ function Metrics({ m }: { m: ReturnType<typeof computeTotals> }) {
 function workbookToSheets(data: ArrayBuffer | string, base64 = false) {
   const wb = XLSX.read(data, { cellDates: false, raw: false, type: base64 ? "base64" : "array" });
   return wb.SheetNames.map((name) => {
-    const ws = wb.Sheets[name]!;
+    const ws = wb.Sheets[name];
+    if (!ws) return { name, rows: [] };
     for (const m of ws["!merges"] ?? []) {
       const src = ws[XLSX.utils.encode_cell(m.s)];
       if (!src) continue;
@@ -275,7 +298,7 @@ function SheetSync({ clientId, sheetUrl, syncedAt, defaultPlatform, onChanged, o
       <p className="font-semibold">ربط Google Sheet</p>
       <p className="text-xs text-muted-foreground">شارك الشيت بخيار «أي شخص لديه الرابط يمكنه العرض» ثم الصق الرابط. المزامنة تحدّث السجل اليومي مباشرة.</p>
       <div className="flex flex-wrap gap-2">
-        <Input dir="ltr" className="min-w-64 flex-1" placeholder="https://docs.google.com/spreadsheets/d/..." value={url} onChange={(e) => setUrl(e.target.value)} />
+          <Input dir="ltr" className="min-w-0 w-full sm:flex-1" placeholder="https://docs.google.com/spreadsheets/d/..." value={url} onChange={(e) => setUrl(e.target.value)} />
         <Button onClick={sync} disabled={busy}><RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} /> مزامنة وتحديث</Button>
       </div>
       {syncedAt && <p className="text-xs text-muted-foreground">آخر مزامنة: <span className="num">{new Date(syncedAt).toLocaleString("en-GB")}</span></p>}
@@ -395,7 +418,8 @@ function VaultTab({ clientId }: { clientId: string }) {
     queryKey: ["vault", clientId],
     queryFn: async () => (await supabase.from("client_vault").select("*").eq("client_id", clientId).order("created_at")).data ?? [],
   });
-  const k = VAULT_KINDS[form.kind]!;
+  const k = VAULT_KINDS[form.kind] ?? VAULT_KINDS["password"];
+  if (!k) return null;
   const set = (key: keyof typeof emptyVault, v: string) => setForm((f) => ({ ...f, [key]: v }));
 
   return (
