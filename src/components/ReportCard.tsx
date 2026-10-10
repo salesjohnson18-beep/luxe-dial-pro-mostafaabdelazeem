@@ -49,8 +49,8 @@ export const ReportCard = forwardRef<HTMLDivElement, Props>(({ title, dateLabel,
           <div key={p.platform} dir="ltr">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm">
               <span className="min-w-0 break-words font-medium">{p.platform}</span>
-              <span className="num text-xs text-muted-foreground">
-                {fmt(p.spend)} {c} · {fmt(p.roas, 2)}x
+              <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground" dir="ltr">
+                <span className="num">{fmt(p.spend)}</span><span className="font-sans">{c}</span><span>·</span><span className="num">{fmt(p.roas, 2)}x</span>
               </span>
             </div>
             <div className="mt-2 h-1.5 rounded-full bg-muted">
