@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { INDUSTRIES, fmt } from "@/lib/metrics";
-import { CURRENCY_NAMES, PAYMENT_METHODS, cur } from "@/lib/crm";
+import { CURRENCY_NAMES, PAYMENT_METHODS, cur, fmtArDate, paymentSchedule } from "@/lib/crm";
 
 export type ClientValues = {
   client_name: string;
@@ -25,6 +25,8 @@ export type ClientValues = {
   payment_method: string;
   installments_count: number;
   work_start_date: string | null;
+  advance_amount: number;
+  ad_budget: number | null;
 };
 
 export const emptyClient: ClientValues = {
@@ -44,6 +46,8 @@ export const emptyClient: ClientValues = {
   payment_method: "upfront",
   installments_count: 1,
   work_start_date: new Date().toISOString().slice(0, 10),
+  advance_amount: 0,
+  ad_budget: null,
 };
 
 export function ClientForm({
@@ -162,11 +166,11 @@ export function ClientForm({
 }
 
 function FinanceFields({ v, set }: { v: ClientValues; set: <K extends keyof ClientValues>(k: K, val: ClientValues[K]) => void }) {
-  const n = v.payment_method === "upfront" ? 1 : Math.max(1, v.installments_count || 1);
-  const per = v.contract_total ? Math.round((v.contract_total / n) * 100) / 100 : 0;
+  const sched = paymentSchedule(v.contract_total ?? 0, v.payment_method, v.installments_count, v.work_start_date ?? new Date().toISOString().slice(0, 10), v.advance_amount);
   return (
     <div className="space-y-4 rounded-lg border border-gold/30 p-4">
-      <p className="text-sm font-semibold text-gold">التعاقد المالي</p>
+      <p className="text-sm font-semibold text-gold">التعاقد المالي — أتعاب الإدارة والتسويق</p>
+      <p className="text-xs text-muted-foreground">ميزانية الإعلانات منفصلة تماماً عن الأتعاب ولا تدخل في الأرباح.</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label>العملة</Label>
@@ -192,15 +196,29 @@ function FinanceFields({ v, set }: { v: ClientValues; set: <K extends keyof Clie
             <Input type="number" min={1} max={60} className="num" value={v.installments_count} onChange={(e) => set("installments_count", Math.max(1, Number(e.target.value) || 1))} />
           </div>
         )}
+        {v.payment_method !== "upfront" && (
+          <div className="space-y-2">
+            <Label>دفعة مقدمة (اختياري)</Label>
+            <Input inputMode="decimal" className="num" value={v.advance_amount || ""} onChange={(e) => { const x = e.target.value.replace(/[^\d.]/g, ""); set("advance_amount", x ? Number(x) : 0); }} />
+          </div>
+        )}
         <div className="space-y-2">
-          <Label>تاريخ بدء العمل</Label>
+          <Label>ميزانية الإعلانات الشهرية (منفصلة)</Label>
+          <Input inputMode="decimal" className="num" value={v.ad_budget ?? ""} onChange={(e) => { const x = e.target.value.replace(/[^\d.]/g, ""); set("ad_budget", x ? Number(x) : null); }} />
+        </div>
+        <div className="space-y-2">
+          <Label>تاريخ بدء العمل الفعلي</Label>
           <Input type="date" className="num" value={v.work_start_date ?? ""} onChange={(e) => set("work_start_date", e.target.value || null)} />
         </div>
       </div>
-      {!!v.contract_total && (
-        <p className="text-sm text-muted-foreground">
-          قيمة كل دفعة مستحقة: <span className="num text-gold">{fmt(per, per % 1 ? 2 : 0)}</span> {cur(v.currency)} × <span className="num">{n}</span> {n > 1 ? (v.payment_method === "monthly" ? "شهرياً" : "أسبوعياً") : "(مقدم)"}
-        </p>
+      {sched.length > 0 && (
+        <div className="space-y-1 rounded-md bg-muted/40 p-3 text-sm">
+          <p className="text-xs text-muted-foreground">جدول الاستحقاق ({v.payment_method === "upfront" ? "مقدم كامل يوم البدء" : v.payment_method === "monthly" ? "مؤخر: أول دفعة بعد 30 يوماً" : "مؤخر: أول دفعة بعد 7 أيام"})</p>
+          {sched.slice(0, 6).map((x) => (
+            <p key={x.number}>{x.advance && v.payment_method !== "upfront" ? "دفعة مقدمة" : `دفعة ${x.number} من ${x.total_count}`}: <span className="num text-gold">{fmt(x.amount, x.amount % 1 ? 2 : 0)}</span> {cur(v.currency)} — <span className="text-muted-foreground">{fmtArDate(x.due)}</span></p>
+          ))}
+          {sched.length > 6 && <p className="text-xs text-muted-foreground">و {sched.length - 6} دفعات أخرى</p>}
+        </div>
       )}
     </div>
   );
