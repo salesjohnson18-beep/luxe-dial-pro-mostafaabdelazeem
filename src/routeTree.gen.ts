@@ -17,6 +17,7 @@ import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedServicesRouteImport } from './routes/_authenticated/services'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as ITokenRouteImport } from './routes/i.$token'
 import { Route as QTokenRouteImport } from './routes/q.$token'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
@@ -64,6 +65,11 @@ const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ITokenRoute = ITokenRouteImport.update({
+  id: '/i/$token',
+  path: '/i/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const QTokenRoute = QTokenRouteImport.update({
   id: '/q/$token',
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/services': typeof AuthenticatedServicesRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/i/$token': typeof ITokenRoute
   '/q/$token': typeof QTokenRoute
   '/r/$token': typeof RTokenRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/services': typeof AuthenticatedServicesRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/i/$token': typeof ITokenRoute
   '/q/$token': typeof QTokenRoute
   '/r/$token': typeof RTokenRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/_authenticated/services': typeof AuthenticatedServicesRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
+  '/i/$token': typeof ITokenRoute
   '/q/$token': typeof QTokenRoute
   '/r/$token': typeof RTokenRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/tasks'
     | '/users'
+    | '/i/$token'
     | '/q/$token'
     | '/r/$token'
     | '/clients/$id'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/tasks'
     | '/users'
+    | '/i/$token'
     | '/q/$token'
     | '/r/$token'
     | '/clients/$id'
@@ -206,6 +217,7 @@ export interface FileRouteTypes {
     | '/_authenticated/services'
     | '/_authenticated/tasks'
     | '/_authenticated/users'
+    | '/i/$token'
     | '/q/$token'
     | '/r/$token'
     | '/_authenticated/clients/$id'
@@ -220,6 +232,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ITokenRoute: typeof ITokenRoute
   QTokenRoute: typeof QTokenRoute
   RTokenRoute: typeof RTokenRoute
 }
@@ -281,6 +294,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/users'
       preLoaderRoute: typeof AuthenticatedUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/i/$token': {
+      id: '/i/$token'
+      path: '/i/$token'
+      fullPath: '/i/$token'
+      preLoaderRoute: typeof ITokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/q/$token': {
       id: '/q/$token'
@@ -376,6 +396,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ITokenRoute: ITokenRoute,
   QTokenRoute: QTokenRoute,
   RTokenRoute: RTokenRoute,
 }

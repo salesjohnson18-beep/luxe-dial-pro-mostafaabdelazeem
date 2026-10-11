@@ -36,6 +36,13 @@
       "when": 1791594284908,
       "tag": "0004_campaign_social_leads_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791680685908,
+      "tag": "0005_erp_finance",
+      "breakpoints": true
     }
   ]
 }

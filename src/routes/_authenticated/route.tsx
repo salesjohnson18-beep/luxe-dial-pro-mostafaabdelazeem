@@ -56,7 +56,7 @@ function Shell() {
     ...(me?.is("admin") || me?.is("sales") || me?.is("accountant")
       ? [{ to: "/leads", label: "المتابعة والعملاء المحتملون", icon: Contact }, { to: "/quotes", label: "عروض الأسعار", icon: FileText }, { to: "/services", label: "دليل الخدمات", icon: Package }]
       : []),
-    ...(me?.is("admin") || me?.is("accountant") ? [{ to: "/finance", label: "الماليات والدفعات", icon: Wallet }] : []),
+    ...(me?.is("admin") || me?.is("accountant") ? [{ to: "/finance", label: "المالية والمحاسبة", icon: Wallet }] : []),
     { to: "/tasks", label: "المهام والتنبيهات", icon: ListChecks },
     ...(me?.is("admin") ? [{ to: "/users", label: "المستخدمون", icon: UserCog }] : []),
   ] as const;

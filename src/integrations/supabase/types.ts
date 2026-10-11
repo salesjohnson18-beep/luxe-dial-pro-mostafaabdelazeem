@@ -73,9 +73,12 @@ export type Database = {
           currency: string
           due_date: string
           id: string
+          is_advance: boolean
           number: number
           paid: boolean
           paid_at: string | null
+          payment_method: string | null
+          postponed_count: number
           quote_id: string | null
           total_count: number
         }
@@ -87,9 +90,12 @@ export type Database = {
           currency?: string
           due_date: string
           id?: string
+          is_advance?: boolean
           number: number
           paid?: boolean
           paid_at?: string | null
+          payment_method?: string | null
+          postponed_count?: number
           quote_id?: string | null
           total_count: number
         }
@@ -101,9 +107,12 @@ export type Database = {
           currency?: string
           due_date?: string
           id?: string
+          is_advance?: boolean
           number?: number
           paid?: boolean
           paid_at?: string | null
+          payment_method?: string | null
+          postponed_count?: number
           quote_id?: string | null
           total_count?: number
         }
@@ -173,6 +182,8 @@ export type Database = {
       }
       clients: {
         Row: {
+          ad_budget: number | null
+          advance_amount: number
           assigned_to: string | null
           client_name: string
           contract_total: number | null
@@ -199,6 +210,8 @@ export type Database = {
           work_start_date: string | null
         }
         Insert: {
+          ad_budget?: number | null
+          advance_amount?: number
           assigned_to?: string | null
           client_name: string
           contract_total?: number | null
@@ -225,6 +238,8 @@ export type Database = {
           work_start_date?: string | null
         }
         Update: {
+          ad_budget?: number | null
+          advance_amount?: number
           assigned_to?: string | null
           client_name?: string
           contract_total?: number | null
@@ -254,6 +269,7 @@ export type Database = {
       }
       finance_entries: {
         Row: {
+          account: string
           amount: number
           category: string | null
           client_id: string | null
@@ -265,8 +281,10 @@ export type Database = {
           installment_id: string | null
           kind: string
           note: string | null
+          payment_method: string | null
         }
         Insert: {
+          account?: string
           amount: number
           category?: string | null
           client_id?: string | null
@@ -278,8 +296,10 @@ export type Database = {
           installment_id?: string | null
           kind?: string
           note?: string | null
+          payment_method?: string | null
         }
         Update: {
+          account?: string
           amount?: number
           category?: string | null
           client_id?: string | null
@@ -291,6 +311,7 @@ export type Database = {
           installment_id?: string | null
           kind?: string
           note?: string | null
+          payment_method?: string | null
         }
         Relationships: [
           {
@@ -304,6 +325,78 @@ export type Database = {
             foreignKeyName: "finance_entries_installment_id_fkey"
             columns: ["installment_id"]
             isOneToOne: false
+            referencedRelation: "client_installments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          account: string
+          amount: number
+          client_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string
+          due_date: string
+          id: string
+          installment_id: string | null
+          issue_date: string
+          paid_at: string | null
+          payment_method: string | null
+          seq: number
+          share_token: string
+          status: string
+        }
+        Insert: {
+          account?: string
+          amount: number
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description: string
+          due_date?: string
+          id?: string
+          installment_id?: string | null
+          issue_date?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          seq?: number
+          share_token?: string
+          status?: string
+        }
+        Update: {
+          account?: string
+          amount?: number
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string
+          due_date?: string
+          id?: string
+          installment_id?: string | null
+          issue_date?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          seq?: number
+          share_token?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: true
             referencedRelation: "client_installments"
             referencedColumns: ["id"]
           },
@@ -705,12 +798,17 @@ export type Database = {
       can_edit_client: { Args: { _client: string }; Returns: boolean }
       can_view_client: { Args: { _client: string }; Returns: boolean }
       can_view_crm: { Args: never; Returns: boolean }
+      confirm_installment: {
+        Args: { _id: string; _method: string }
+        Returns: undefined
+      }
       convert_lead_to_client: { Args: { _lead: string }; Returns: string }
       convert_quote_to_client: { Args: { _quote: string }; Returns: string }
       generate_client_installments: {
         Args: { _client: string }
         Returns: number
       }
+      get_shared_invoice: { Args: { _token: string }; Returns: Json }
       get_shared_quote: { Args: { _token: string }; Returns: Json }
       get_shared_report: {
         Args: { _from: string; _to: string; _token: string }
@@ -740,6 +838,10 @@ export type Database = {
           id: string
           roles: Database["public"]["Enums"]["app_role"][]
         }[]
+      }
+      postpone_installment: {
+        Args: { _date: string; _id: string }
+        Returns: undefined
       }
       quote_total: { Args: { _quote: string }; Returns: number }
       respond_quote: {
