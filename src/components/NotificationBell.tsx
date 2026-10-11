@@ -46,11 +46,11 @@ export function NotificationBell() {
       for (const r of rem.data ?? []) out.push({ id: `r:${r.id}:${r.due_at}`, kind: "task", title: r.title, sub: "مهمة مستحقة", at: r.due_at, to: { to: "/tasks" }, action: { label: "تم", run: () => completeReminder(r) } });
       for (const l of (leads.data ?? []) as { id: string; client_name: string; phone: string | null; next_followup_at: string }[])
         out.push({ id: `l:${l.id}:${l.next_followup_at}`, kind: "lead", title: `موعد متابعة: ${l.client_name}`, sub: "كارت المتابعة", at: l.next_followup_at, to: { to: "/leads/$id", params: { id: l.id } }, ...(l.phone ? { wa: waLink(l.phone) } : {}) });
-      for (const i of (inst.data ?? []) as { id: string; amount: number; currency: string; number: number; total_count: number; due_date: string; clients: { id: string; project_name: string; phone: string | null } | null }[])
+      for (const i of (inst.data ?? []) as { id: string; amount: number; agreement_total: number; currency: string; number: number; total_count: number; due_date: string; clients: { id: string; project_name: string; phone: string | null } | null }[])
         out.push({
-          id: `p:${i.id}`, kind: "payment", title: `هل دفع ${i.clients?.project_name ?? "العميل"}؟`,
-          sub: `الدفعة المستحقة: ${fmt(Number(i.amount))} ${cur(i.currency)} - الدفعة ${i.number} من ${i.total_count}`, at: i.due_date + "T09:00:00Z",
-          to: { to: "/finance" }, action: { label: "نعم دفع", run: () => supabase.rpc("set_installment_paid", { _id: i.id, _paid: true }) },
+          id: `p:${i.id}`, kind: "payment", title: `هل تم تحويل الدفعة؟ — ${i.clients?.project_name ?? "العميل"}`,
+          sub: `الدفعة المستحقة: ${fmt(Number(i.amount))} من إجمالي ${fmt(Number(i.agreement_total))} ${cur(i.currency)} — دفعة ${i.number} من ${i.total_count}`, at: i.due_date + "T09:00:00Z",
+          to: { to: "/finance" }, action: { label: "نعم، تم التحويل", run: () => supabase.rpc("confirm_installment", { _id: i.id, _method: "تحويل بنكي" }) },
         });
       for (const c of (clients.data ?? []) as { id: string; project_name: string; phone: string | null; transfer_cycle: string; work_start_date: string | null; last_transfer_at: string | null }[]) {
         const base = c.last_transfer_at ?? c.work_start_date;
