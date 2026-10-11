@@ -69,3 +69,32 @@ function addDays(d: string, n: number) { const x = new Date(d + "T00:00:00Z"); x
 function addMonths(d: string, n: number) { const x = new Date(d + "T00:00:00Z"); x.setUTCMonth(x.getUTCMonth() + n); return x.toISOString().slice(0, 10); }
 /** Transfer reminder date: one cycle (7 days weekly / 1 month monthly) after the last transfer or work start. */
 export function transferDue(base: string, cycle: string) { return cycle === "monthly" ? addMonths(base, 1) : addDays(base, 7); }
+
+/** Installment schedule (mirrors SQL generate_client_installments).
+ * upfront: whole amount due on start. weekly: first due start+7, every 7 days. monthly: first due start+30, every 30 days.
+ * Optional advance (down payment) is due on the start date and the rest is split. */
+export function paymentSchedule(total: number, method: string, count: number, start: string, advance = 0) {
+  if (!total || total <= 0) return [] as { number: number; total_count: number; amount: number; due: string; advance: boolean }[];
+  if (method === "upfront") return [{ number: 1, total_count: 1, amount: total, due: start, advance: true }];
+  const adv = Math.min(Math.max(advance || 0, 0), total);
+  const n = Math.max(1, Math.round(count) || 1);
+  const step = method === "monthly" ? 30 : 7;
+  const made = adv > 0 ? 1 : 0;
+  const rest = total - adv;
+  const out = adv > 0 ? [{ number: 1, total_count: n + made, amount: adv, due: start, advance: true }] : [];
+  if (rest > 0) {
+    const amt = Math.round((rest / n) * 100) / 100;
+    for (let i = 1; i <= n; i++) out.push({ number: i + made, total_count: n + made, amount: i === n ? Math.round((rest - amt * (n - 1)) * 100) / 100 : amt, due: addDays(start, step * i), advance: false });
+  }
+  return out;
+}
+
+export const PAY_CHANNELS = ["تحويل بنكي", "STC Pay", "نقدي", "PayPal", "Instapay", "فودافون كاش", "أخرى"];
+export const EXPENSE_CATEGORIES = ["اشتراكات الأدوات", "برامج وتطبيقات", "عمولات ومكافآت", "مصاريف إدارية", "أخرى"];
+export const ACCOUNTS: Record<string, string> = { fees: "أتعاب الإدارة والتسويق", ad_budget: "ميزانية الإعلانات" };
+export function invoiceStatus(status: string, due: string, todayStr: string) {
+  if (status === "paid") return { label: "مدفوعة", cls: "bg-success/15 text-success border-success/40" };
+  if (status === "cancelled") return { label: "ملغاة", cls: "border-border text-muted-foreground" };
+  if (due < todayStr) return { label: "متأخرة", cls: "bg-destructive/15 text-destructive border-destructive/40" };
+  return { label: "معلقة", cls: "bg-gold-soft text-gold border-gold/40" };
+}
