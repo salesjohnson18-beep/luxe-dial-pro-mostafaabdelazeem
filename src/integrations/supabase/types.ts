@@ -267,6 +267,47 @@ export type Database = {
         }
         Relationships: []
       }
+      creative_ideas: {
+        Row: {
+          client_id: string
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          platform: string | null
+          title: string | null
+        }
+        Insert: {
+          client_id: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          platform?: string | null
+          title?: string | null
+        }
+        Update: {
+          client_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          platform?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_ideas_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_entries: {
         Row: {
           account: string
