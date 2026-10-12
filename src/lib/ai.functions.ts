@@ -61,7 +61,7 @@ export const draftTask = createServerFn({ method: "POST" })
     const list = (clients ?? []).map((c) => `${c.id}: ${c.project_name} / ${c.client_name}`).join("\n");
     try {
       const text = await askAI(
-        `حوّل طلب المستخدم إلى مهمة. أعد فقط JSON: {"title":"","due_at":"ISO 8601 بتوقيت UTC","kind":"task|haraj|personal_ad|limit|reminder","recurrence":"none|daily|weekly|monthly","note":null,"client_id":null}. client_id من القائمة فقط إن ذُكر العميل. الوقت الحالي للمستخدم: ${data.now}.`,
+        `حوّل طلب المستخدم إلى مهمة. أعد فقط JSON: {"title":"","due_at":"ISO 8601 بتوقيت UTC","kind":"task|haraj|ad|limit|other","recurrence":"none|daily|weekly|monthly","note":null,"client_id":null}. client_id من القائمة فقط إن ذُكر العميل. الوقت الحالي للمستخدم: ${data.now}.`,
         `العملاء:\n${list || "لا يوجد"}\n\nالطلب: ${data.request}`,
       );
       const t = parseJson<TaskDraft>(text);
@@ -71,7 +71,7 @@ export const draftTask = createServerFn({ method: "POST" })
       return { ok: true as const, task: {
         title: String(t.title).slice(0, 200),
         due_at: isNaN(due.getTime()) ? new Date().toISOString() : due.toISOString(),
-        kind: ["task", "haraj", "personal_ad", "limit", "reminder"].includes(t.kind) ? t.kind : "task",
+        kind: ["task", "haraj", "ad", "limit", "other"].includes(t.kind) ? t.kind : "task",
         recurrence: ["none", "daily", "weekly", "monthly"].includes(t.recurrence) ? t.recurrence : "none",
         note: t.note ? String(t.note).slice(0, 1000) : null,
         client_id: t.client_id && ids.has(t.client_id) ? t.client_id : null,
