@@ -16,7 +16,7 @@ function runIdFetch() {
 
 /** One-shot gateway call: streams server-side and returns the final text. */
 export async function askAI(instructions: string, prompt: string) {
-  const apiKey = process.env.LOVABLE_API_KEY;
+  const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("خدمة الذكاء الاصطناعي غير مهيأة");
   const provider = createOpenAI({
     baseURL: "https://ai.gateway.lovable.dev/v1",
