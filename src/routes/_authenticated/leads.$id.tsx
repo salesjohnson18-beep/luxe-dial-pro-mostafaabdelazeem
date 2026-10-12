@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { MessageCircle, Phone, Trash2 } from "lucide-react";
+import { MessageCircle, Pencil, Phone, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +37,7 @@ function LeadCard() {
   const [other, setOther] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [edit, setEdit] = useState<{ id: string; outcome: string; note: string } | null>(null);
 
   const { data, refetch } = useQuery({
     queryKey: ["lead", id],
@@ -148,11 +149,33 @@ function LeadCard() {
             {data.followups.map((f) => (
               <li key={f.id} className="flex gap-3 rounded-lg border border-border bg-card p-3 text-sm">
                 <span className="num flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gold-soft text-gold">{f.attempt_no}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">{f.outcome}</p>
-                  {f.note && <p className="text-muted-foreground">{f.note}</p>}
-                  <p className="mt-1 text-xs text-muted-foreground">{f.caller_name} · {fmtArDateTime(f.created_at)}</p>
-                </div>
+                {edit?.id === f.id ? (
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex flex-wrap gap-1">{OUTCOMES.map((o) => <Button key={o} size="sm" variant={edit.outcome === o ? "default" : "outline"} className="h-7 px-2 text-xs" onClick={() => setEdit({ ...edit, outcome: o })}>{o}</Button>)}</div>
+                    <Input maxLength={500} value={edit.outcome} onChange={(e) => setEdit({ ...edit, outcome: e.target.value })} placeholder="النتيجة" />
+                    <Textarea maxLength={2000} value={edit.note} onChange={(e) => setEdit({ ...edit, note: e.target.value })} placeholder="الملاحظات" />
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">موعد المتابعة القادمة</p>
+                      <Input type="datetime-local" className="num" defaultValue={lead.next_followup_at ? new Date(new Date(lead.next_followup_at).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""} onBlur={(e) => patch({ next_followup_at: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={async () => {
+                        if (!edit.outcome.trim()) return void toast.error("اكتب النتيجة");
+                        const { error } = await supabase.from("lead_followups").update({ outcome: edit.outcome.trim(), note: edit.note.trim() || null }).eq("id", f.id);
+                        if (error) return void toast.error(error.message);
+                        toast.success("تم تعديل المتابعة"); setEdit(null); refetch();
+                      }}>حفظ</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEdit(null)}>إلغاء</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{f.outcome}</p>
+                    {f.note && <p className="text-muted-foreground">{f.note}</p>}
+                    <p className="mt-1 text-xs text-muted-foreground">{f.caller_name} · {fmtArDateTime(f.created_at)}</p>
+                  </div>
+                )}
+                {canEdit && edit?.id !== f.id && <button title="تعديل" onClick={() => setEdit({ id: f.id, outcome: f.outcome, note: f.note ?? "" })} className="self-start text-muted-foreground hover:text-gold"><Pencil className="h-4 w-4" /></button>}
                 {canEdit && <button onClick={async () => { await supabase.from("lead_followups").delete().eq("id", f.id); refetch(); }} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}
               </li>
             ))}

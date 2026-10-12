@@ -10,5 +10,7 @@
 - [x] Google Sheet link + sync button on client profile
 - [x] Phase 3: finance (installments "200 SAR — 1 of 4", mark paid, income/expenses/net profit), bell sound alerts, transfer reminders, personal campaigns (Haraj, limits), tasks
 - [x] ERP finance: advance/weekly(+7d)/monthly(+30d) schedules, confirm/postpone with payment method, fees vs ad budget split, numbered invoices + share link, client statement, expenses + P&L
-- [ ] Phase 5: AI hooks lab + budget/CTR insights
+- [x] Phase 5: AI creative lab (hooks/angles/copies/scripts, saved ideas), campaign analysis assistant, AI task drafting
+- [x] Existing clients: installment due dates rescheduled (+7d weekly / +30d monthly)
+- [x] Lead follow-up edit
 - [ ] Auth email template showing the 6-digit code (needs email domain)
