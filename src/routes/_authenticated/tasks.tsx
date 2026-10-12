@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useMe } from "@/lib/auth";
 import { useStaff } from "@/lib/staff";
 import { fmtArDateTime } from "@/lib/crm";
+import { AiTaskAssistant } from "@/components/AiTaskAssistant";
 
 export const Route = createFileRoute("/_authenticated/tasks")({
   head: () => ({
@@ -74,6 +75,7 @@ function TasksPage() {
         <h1 className="text-3xl font-bold">المهام والتنبيهات</h1>
         <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> مهمة / تذكير</Button>
       </div>
+      <AiTaskAssistant kinds={TASK_KINDS} onCreated={() => refetch()} />
       <div className="flex flex-wrap gap-2">
         {([["open", "المفتوحة"], ["personal", "حملاتي وإعلاناتي"], ["done", "المنجزة"]] as const).map(([k, l]) => (
           <Button key={k} size="sm" variant={tab === k ? "default" : "outline"} onClick={() => setTab(k)}>{l}</Button>

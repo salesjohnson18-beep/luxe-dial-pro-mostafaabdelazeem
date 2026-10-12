@@ -7,6 +7,7 @@ import { toPng } from "html-to-image";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CreativeLab } from "@/components/CreativeLab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,12 +59,14 @@ function ClientPage() {
           <TabsTrigger value="report">تقرير العميل</TabsTrigger>
           {canEdit && <TabsTrigger value="entry">الإدخال اليومي</TabsTrigger>}
           {canEdit && <TabsTrigger value="import">استيراد إكسل</TabsTrigger>}
+          {canEdit && <TabsTrigger value="lab">مختبر الكرييتف والمساعد</TabsTrigger>}
           {canEdit && <TabsTrigger value="vault">الخزانة الآمنة</TabsTrigger>}
           {canEdit && <TabsTrigger value="settings">البيانات</TabsTrigger>}
         </TabsList>
         <TabsContent value="report" className="mt-6"><ReportTab clientId={id} title={client.project_name} token={client.share_token} currency={client.currency} /></TabsContent>
         {canEdit && <TabsContent value="entry" className="mt-6"><EntryTab clientId={id} /></TabsContent>}
         {canEdit && <TabsContent value="import" className="mt-6"><ImportTab clientId={id} sheetUrl={client.sheet_url} syncedAt={client.sheet_synced_at} onChanged={refetch} /></TabsContent>}
+        {canEdit && <TabsContent value="lab" className="mt-6"><CreativeLab clientId={id} /></TabsContent>}
         {canEdit && <TabsContent value="vault" className="mt-6"><VaultTab clientId={id} /></TabsContent>}
         {canEdit && (
           <TabsContent value="settings" className="mt-6">
