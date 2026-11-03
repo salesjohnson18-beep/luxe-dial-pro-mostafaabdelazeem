@@ -779,6 +779,33 @@ export type Database = {
         }
         Relationships: []
       }
+      sheet_sync_settings: {
+        Row: {
+          enabled: boolean
+          id: boolean
+          last_status: string | null
+          last_sync_at: string | null
+          updated_at: string
+          webhook_url: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          id?: boolean
+          last_status?: string | null
+          last_sync_at?: string | null
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          id?: boolean
+          last_status?: string | null
+          last_sync_at?: string | null
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
       store_sales: {
         Row: {
           client_id: string

@@ -50,6 +50,13 @@
       "when": 1791768651477,
       "tag": "0006_creative_ideas",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793702600326,
+      "tag": "0007_sheet_sync_settings",
+      "breakpoints": true
     }
   ]
 }
