@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticated/finance'
 import { Route as AuthenticatedServicesRouteImport } from './routes/_authenticated/services'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as ITokenRouteImport } from './routes/i.$token'
@@ -26,6 +27,7 @@ import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as AuthenticatedQuotesIndexRouteImport } from './routes/_authenticated/quotes.index'
 import { Route as AuthenticatedQuotesIdRouteImport } from './routes/_authenticated/quotes.$id'
+import { Route as ApiPublicJobsSheetSyncRouteImport } from './routes/api/public/jobs/sheet-sync'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -54,6 +56,11 @@ const AuthenticatedFinanceRoute = AuthenticatedFinanceRouteImport.update({
 const AuthenticatedServicesRoute = AuthenticatedServicesRouteImport.update({
   id: '/services',
   path: '/services',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
@@ -113,6 +120,11 @@ const AuthenticatedQuotesIdRoute = AuthenticatedQuotesIdRouteImport.update({
   path: '/quotes/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicJobsSheetSyncRoute = ApiPublicJobsSheetSyncRouteImport.update({
+  id: '/api/public/jobs/sheet-sync',
+  path: '/api/public/jobs/sheet-sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -120,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/finance': typeof AuthenticatedFinanceRoute
   '/services': typeof AuthenticatedServicesRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/users': typeof AuthenticatedUsersRoute
   '/i/$token': typeof ITokenRoute
@@ -131,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
   '/quotes/': typeof AuthenticatedQuotesIndexRoute
+  '/api/public/jobs/sheet-sync': typeof ApiPublicJobsSheetSyncRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -138,6 +152,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/finance': typeof AuthenticatedFinanceRoute
   '/services': typeof AuthenticatedServicesRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/users': typeof AuthenticatedUsersRoute
   '/i/$token': typeof ITokenRoute
@@ -149,6 +164,7 @@ export interface FileRoutesByTo {
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
   '/quotes': typeof AuthenticatedQuotesIndexRoute
+  '/api/public/jobs/sheet-sync': typeof ApiPublicJobsSheetSyncRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -158,6 +174,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/finance': typeof AuthenticatedFinanceRoute
   '/_authenticated/services': typeof AuthenticatedServicesRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/i/$token': typeof ITokenRoute
@@ -169,6 +186,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
   '/_authenticated/quotes/': typeof AuthenticatedQuotesIndexRoute
+  '/api/public/jobs/sheet-sync': typeof ApiPublicJobsSheetSyncRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -178,6 +196,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/finance'
     | '/services'
+    | '/settings'
     | '/tasks'
     | '/users'
     | '/i/$token'
@@ -189,6 +208,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/leads/'
     | '/quotes/'
+    | '/api/public/jobs/sheet-sync'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -196,6 +216,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/finance'
     | '/services'
+    | '/settings'
     | '/tasks'
     | '/users'
     | '/i/$token'
@@ -207,6 +228,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/leads'
     | '/quotes'
+    | '/api/public/jobs/sheet-sync'
   id:
     | '__root__'
     | '/'
@@ -215,6 +237,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/finance'
     | '/_authenticated/services'
+    | '/_authenticated/settings'
     | '/_authenticated/tasks'
     | '/_authenticated/users'
     | '/i/$token'
@@ -226,6 +249,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/'
     | '/_authenticated/leads/'
     | '/_authenticated/quotes/'
+    | '/api/public/jobs/sheet-sync'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -235,6 +259,7 @@ export interface RootRouteChildren {
   ITokenRoute: typeof ITokenRoute
   QTokenRoute: typeof QTokenRoute
   RTokenRoute: typeof RTokenRoute
+  ApiPublicJobsSheetSyncRoute: typeof ApiPublicJobsSheetSyncRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -279,6 +304,13 @@ declare module '@tanstack/react-router' {
       path: '/services'
       fullPath: '/services'
       preLoaderRoute: typeof AuthenticatedServicesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tasks': {
@@ -358,6 +390,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedQuotesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/jobs/sheet-sync': {
+      id: '/api/public/jobs/sheet-sync'
+      path: '/api/public/jobs/sheet-sync'
+      fullPath: '/api/public/jobs/sheet-sync'
+      preLoaderRoute: typeof ApiPublicJobsSheetSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -365,6 +404,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRoute
   AuthenticatedServicesRoute: typeof AuthenticatedServicesRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedClientsIdRoute: typeof AuthenticatedClientsIdRoute
@@ -379,6 +419,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFinanceRoute: AuthenticatedFinanceRoute,
   AuthenticatedServicesRoute: AuthenticatedServicesRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedClientsIdRoute: AuthenticatedClientsIdRoute,
@@ -399,6 +440,7 @@ const rootRouteChildren: RootRouteChildren = {
   ITokenRoute: ITokenRoute,
   QTokenRoute: QTokenRoute,
   RTokenRoute: RTokenRoute,
+  ApiPublicJobsSheetSyncRoute: ApiPublicJobsSheetSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
