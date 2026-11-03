@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ACCOUNTS, CURRENCY_NAMES, EXPENSE_CATEGORIES, PAY_CHANNELS, cur, fmtArDate, invoiceStatus } from "@/lib/crm";
+import { quickRange, ACCOUNTS, CURRENCY_NAMES, EXPENSE_CATEGORIES, PAY_CHANNELS, cur, fmtArDate, invoiceStatus } from "@/lib/crm";
 import { fmt, today } from "@/lib/metrics";
 
 export const Route = createFileRoute("/_authenticated/finance")({
@@ -31,7 +31,7 @@ type Inst = { id: string; client_id: string; amount: number; currency: string; n
 type LRow = { id: string; kind: string; account: string; amount: number; currency: string; category: string | null; note: string | null; entry_date: string; installment_id: string | null; client_id: string | null; payment_method: string | null; clients: unknown };
 type Inv = { id: string; seq: number; client_id: string; account: string; description: string; amount: number; currency: string; issue_date: string; due_date: string; status: string; share_token: string; clients: unknown };
 
-const TABS = [["summary", "الملخص التنفيذي"], ["due", "المستحقات"], ["paid", "المسددة"], ["invoices", "الفواتير"], ["ledger", "المصروفات والدخل"], ["statement", "كشف حساب عميل"]] as const;
+const TABS = [["summary", "الملخص التنفيذي"], ["collections", "المقبوضات حسب الفترة"], ["due", "المستحقات"], ["paid", "المسددة"], ["invoices", "الفواتير"], ["ledger", "المصروفات والدخل"], ["statement", "كشف حساب عميل"]] as const;
 
 function FinancePage() {
   const [tab, setTab] = useState<(typeof TABS)[number][0]>("summary");
@@ -52,6 +52,7 @@ function FinancePage() {
       </div>
 
       {tab === "summary" && <Summary inst={inst.data ?? []} ledger={ledger.data ?? []} />}
+      {tab === "collections" && <Collections ledger={ledger.data ?? []} inst={inst.data ?? []} />}
       {(tab === "due" || tab === "paid") && (
         <div className="space-y-2">
           {list.length === 0 && <div className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">لا توجد دفعات. أضف إجمالي التعاقد في بيانات العميل لتظهر دفعاته هنا.</div>}
@@ -64,7 +65,7 @@ function FinancePage() {
                 <div className="min-w-0 flex-1">
                   {c && <Link to="/clients/$id" params={{ id: c.id }} className="font-medium hover:text-gold">{c.project_name} — {c.client_name}</Link>}
                   <p className="mt-1 text-sm">
-                    {i.is_advance && i.total_count > 1 ? "دفعة مقدمة" : "الدفعة المستحقة"}: <span className="num text-gold">{fmt(Number(i.amount), Number(i.amount) % 1 ? 2 : 0)}</span> من إجمالي <span className="num">{fmt(Number(i.agreement_total))}</span> {cur(i.currency)} — دفعة <span className="num">{i.number}</span> من <span className="num">{i.total_count}</span>
+                    {i.is_advance && i.total_count > 1 ? "دفعة مقدمة" : i.total_count === 0 ? "مستحق الدورة" : "الدفعة المستحقة"}: <span className="num text-gold">{fmt(Number(i.amount), Number(i.amount) % 1 ? 2 : 0)}</span> من إجمالي <span className="num">{fmt(Number(i.agreement_total))}</span> {cur(i.currency)} — {i.total_count === 0 ? `دورة متجددة رقم ${i.number}` : <>دفعة <span className="num">{i.number}</span> من <span className="num">{i.total_count}</span></>}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {i.paid ? `سُددت ${i.paid_at ? fmtArDate(i.paid_at) : ""}${i.payment_method ? ` · ${i.payment_method}` : ""}` : `تستحق ${fmtArDate(i.due_date)}${late ? " — متأخرة" : i.due_date === t ? " — اليوم" : ""}${i.postponed_count ? ` · أُجّلت ${i.postponed_count}×` : ""}`}
@@ -97,7 +98,7 @@ export function ConfirmDialog({ inst, onClose, onDone }: { inst: { id: string; a
         <DialogHeader><DialogTitle>هل تم تحويل الدفعة؟</DialogTitle></DialogHeader>
         {inst && (
           <div className="space-y-4">
-            <p className="text-sm">الدفعة المستحقة: <span className="num text-gold">{fmt(Number(inst.amount))}</span> من إجمالي <span className="num">{fmt(Number(inst.agreement_total))}</span> {cur(inst.currency)} — دفعة <span className="num">{inst.number}</span> من <span className="num">{inst.total_count}</span></p>
+            <p className="text-sm">الدفعة المستحقة: <span className="num text-gold">{fmt(Number(inst.amount))}</span> من إجمالي <span className="num">{fmt(Number(inst.agreement_total))}</span> {cur(inst.currency)} — {inst.total_count === 0 ? `دورة متجددة رقم ${inst.number}` : <>دفعة <span className="num">{inst.number}</span> من <span className="num">{inst.total_count}</span></>}</p>
             <div className="space-y-2">
               <Label>وسيلة الدفع</Label>
               <Select value={method} onValueChange={setMethod}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PAY_CHANNELS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select>
@@ -280,7 +281,7 @@ function Statement({ clients, inst, ledger }: { clients: Client[]; inst: Inst[];
           <p className="text-sm font-semibold">جدول الدفعات</p>
           <div className="space-y-1 text-sm">
             {mine.length === 0 && <p className="text-muted-foreground">لا توجد دفعات.</p>}
-            {mine.map((i) => <p key={i.id} className="flex flex-wrap justify-between gap-2 border-b border-border py-1"><span>دفعة {i.number} من {i.total_count} — {fmtArDate(i.due_date)}</span><span className={i.paid ? "text-success" : ""}><span className="num">{fmt(Number(i.amount))}</span> {i.paid ? `✓ ${i.payment_method ?? ""}` : "معلقة"}</span></p>)}
+            {mine.map((i) => <p key={i.id} className="flex flex-wrap justify-between gap-2 border-b border-border py-1"><span>{i.total_count === 0 ? `دورة ${i.number}` : `دفعة ${i.number} من ${i.total_count}`} — {fmtArDate(i.due_date)}</span><span className={i.paid ? "text-success" : ""}><span className="num">{fmt(Number(i.amount))}</span> {i.paid ? `✓ ${i.payment_method ?? ""}` : "معلقة"}</span></p>)}
           </div>
           <p className="text-sm font-semibold">سجل المعاملات</p>
           <div className="space-y-1 text-sm">
@@ -289,6 +290,53 @@ function Statement({ clients, inst, ledger }: { clients: Client[]; inst: Inst[];
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Collections({ ledger, inst }: { ledger: LRow[]; inst: Inst[] }) {
+  const t = today();
+  const [r, setR] = useState(() => ({ ...quickRange("this_month", t), k: "this_month" }));
+  const instById = new Map(inst.map((i) => [i.id, i]));
+  const rows = ledger.filter((e) => e.kind === "income" && e.account !== "ad_budget" && e.entry_date >= r.from && e.entry_date <= r.to);
+  const totals: Record<string, number> = {};
+  const byClient = new Map<string, { name: string; items: LRow[]; sum: Record<string, number> }>();
+  for (const e of rows) {
+    totals[e.currency] = (totals[e.currency] ?? 0) + Number(e.amount);
+    const name = (e.clients as { project_name: string } | null)?.project_name ?? "بدون عميل";
+    const g = byClient.get(e.client_id ?? "none") ?? { name, items: [], sum: {} };
+    g.items.push(e); g.sum[e.currency] = (g.sum[e.currency] ?? 0) + Number(e.amount);
+    byClient.set(e.client_id ?? "none", g);
+  }
+  const quick = [["this_month", "هذا الشهر"], ["last_month", "الشهر السابق"], ["this_week", "هذا الأسبوع"]] as const;
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end gap-2 rounded-xl border border-border bg-card p-4">
+        {quick.map(([k, l]) => <Button key={k} size="sm" variant={r.k === k ? "default" : "outline"} onClick={() => setR({ ...quickRange(k, t), k })}>{l}</Button>)}
+        <div className="space-y-1"><Label className="text-xs">من</Label><Input type="date" className="num w-40" value={r.from} onChange={(e) => e.target.value && setR({ ...r, from: e.target.value, k: "custom" })} /></div>
+        <div className="space-y-1"><Label className="text-xs">إلى</Label><Input type="date" className="num w-40" value={r.to} onChange={(e) => e.target.value && setR({ ...r, to: e.target.value, k: "custom" })} /></div>
+        <Button size="sm" variant={r.k === "day" ? "default" : "outline"} onClick={() => setR({ from: t, to: t, k: "day" })}>اليوم</Button>
+      </div>
+      <p className="text-sm text-muted-foreground">الفترة: {fmtArDate(r.from)} — {fmtArDate(r.to)}</p>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Object.keys(totals).length === 0 ? <div className="rounded-xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">إجمالي المحصل</p><p className="num mt-1 text-2xl text-success">0</p></div> :
+          Object.entries(totals).map(([c, v]) => <div key={c} className="rounded-xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">إجمالي المحصل ({CURRENCY_NAMES[c] ?? c})</p><p className="num mt-1 break-all text-2xl text-success">{fmt(v)} <span className="font-sans text-sm">{cur(c)}</span></p></div>)}
+      </div>
+      {rows.length === 0 && <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">لا توجد مقبوضات في هذه الفترة.</p>}
+      {[...byClient.values()].map((g) => (
+        <div key={g.name} className="rounded-xl border border-border bg-card p-4">
+          <div className="mb-2 flex flex-wrap justify-between gap-2"><p className="font-semibold">{g.name}</p><p className="num text-gold">{Object.entries(g.sum).map(([c, v]) => `${fmt(v)} ${cur(c)}`).join(" · ")}</p></div>
+          {g.items.map((e) => {
+            const i = e.installment_id ? instById.get(e.installment_id) : undefined;
+            return (
+              <p key={e.id} className="flex flex-wrap justify-between gap-2 border-t border-border py-1.5 text-sm">
+                <span className="min-w-0 break-words">{fmtArDate(e.entry_date)} — {i ? (i.is_advance ? "دفعة مقدمة" : i.total_count === 0 ? `دورة ${i.number}` : `دفعة ${i.number} من ${i.total_count}`) : e.category ?? "دخل"}{e.payment_method ? ` · ${e.payment_method}` : ""}{e.note ? ` · ${e.note}` : ""}</span>
+                <span className="num text-success">{fmt(Number(e.amount))} {cur(e.currency)}</span>
+              </p>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

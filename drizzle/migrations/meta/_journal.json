@@ -57,6 +57,13 @@
       "when": 1793702600326,
       "tag": "0007_sheet_sync_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793705293637,
+      "tag": "0008_recurring_retainers",
+      "breakpoints": true
     }
   ]
 }

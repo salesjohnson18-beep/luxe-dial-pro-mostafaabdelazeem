@@ -98,3 +98,32 @@ export function invoiceStatus(status: string, due: string, todayStr: string) {
   if (due < todayStr) return { label: "متأخرة", cls: "bg-destructive/15 text-destructive border-destructive/40" };
   return { label: "معلقة", cls: "bg-gold-soft text-gold border-gold/40" };
 }
+
+/** Label for an installment: recurring cycles have total_count 0. */
+export function instLabel(i: { number: number; total_count: number; is_advance?: boolean }, cycle?: string | null) {
+  if (i.is_advance) return "دفعة مقدمة";
+  if (i.total_count === 0) return `الدورة ${cycle === "weekly" ? "الأسبوعية" : "الشهرية"} ${i.number}`;
+  return `الدفعة ${i.number} من ${i.total_count}`;
+}
+
+/** Bell window for a due payment: 2 days before, on the day, and every day after while unpaid. */
+export function dueAlertStage(due: string, todayStr: string): "soon" | "today" | "late" | null {
+  const d = (Date.parse(due + "T00:00:00Z") - Date.parse(todayStr + "T00:00:00Z")) / 86400000;
+  if (d > 2) return null;
+  if (d > 0) return "soon";
+  return d === 0 ? "today" : "late";
+}
+
+/** Quick date ranges for collections (week starts Saturday, Saudi convention). */
+export function quickRange(kind: "this_month" | "last_month" | "this_week", todayStr: string): { from: string; to: string } {
+  const d = new Date(todayStr + "T00:00:00Z");
+  const iso = (x: Date) => x.toISOString().slice(0, 10);
+  if (kind === "this_week") {
+    const back = (d.getUTCDay() + 1) % 7; // Sat=0
+    const s = new Date(d); s.setUTCDate(d.getUTCDate() - back);
+    const e = new Date(s); e.setUTCDate(s.getUTCDate() + 6);
+    return { from: iso(s), to: iso(e) };
+  }
+  const m = d.getUTCMonth() - (kind === "last_month" ? 1 : 0);
+  return { from: iso(new Date(Date.UTC(d.getUTCFullYear(), m, 1))), to: iso(new Date(Date.UTC(d.getUTCFullYear(), m + 1, 0))) };
+}
