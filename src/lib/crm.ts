@@ -113,3 +113,17 @@ export function dueAlertStage(due: string, todayStr: string): "soon" | "today" |
   if (d > 0) return "soon";
   return d === 0 ? "today" : "late";
 }
+
+/** Quick date ranges for collections (week starts Saturday, Saudi convention). */
+export function quickRange(kind: "this_month" | "last_month" | "this_week", todayStr: string): { from: string; to: string } {
+  const d = new Date(todayStr + "T00:00:00Z");
+  const iso = (x: Date) => x.toISOString().slice(0, 10);
+  if (kind === "this_week") {
+    const back = (d.getUTCDay() + 1) % 7; // Sat=0
+    const s = new Date(d); s.setUTCDate(d.getUTCDate() - back);
+    const e = new Date(s); e.setUTCDate(s.getUTCDate() + 6);
+    return { from: iso(s), to: iso(e) };
+  }
+  const m = d.getUTCMonth() - (kind === "last_month" ? 1 : 0);
+  return { from: iso(new Date(Date.UTC(d.getUTCFullYear(), m, 1))), to: iso(new Date(Date.UTC(d.getUTCFullYear(), m + 1, 0))) };
+}
