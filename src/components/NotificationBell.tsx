@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { useMe } from "@/lib/auth";
 import { playChime } from "@/lib/chime";
-import { cur, fmtArDateTime, transferDue, waLink } from "@/lib/crm";
+import { cur, dueAlertStage, fmtArDate, fmtArDateTime, instLabel, transferDue, waLink } from "@/lib/crm";
 import { fmt, today } from "@/lib/metrics";
 import { completeReminder } from "@/routes/_authenticated/tasks";
 
@@ -37,21 +37,29 @@ export function NotificationBell() {
       const fin = me!.is("admin") || me!.is("accountant");
       const crm = me!.is("admin") || me!.is("sales");
       const camp = me!.canEditCampaigns;
+      if (fin || camp) await supabase.rpc("ensure_recurring_cycles");
+      const soon = new Date(Date.parse(t + "T00:00:00Z") + 2 * 86400000).toISOString().slice(0, 10);
       const [rem, leads, inst, clients] = await Promise.all([
         supabase.from("reminders").select("*").eq("done", false).lte("due_at", now).or(`owner_id.eq.${me!.user.id},assignee_id.eq.${me!.user.id}`),
         crm ? supabase.from("leads").select("id,client_name,phone,next_followup_at").eq("status", "following").lte("next_followup_at", now) : Promise.resolve({ data: [] }),
-        fin ? supabase.from("client_installments").select("*, clients(id,project_name,phone)").eq("paid", false).lte("due_date", t) : Promise.resolve({ data: [] }),
-        camp ? supabase.from("clients").select("id,project_name,phone,transfer_cycle,work_start_date,last_transfer_at,is_active").eq("is_active", true) : Promise.resolve({ data: [] }),
+        fin ? supabase.from("client_installments").select("*, clients!inner(id,project_name,phone,status,payment_method)").eq("paid", false).eq("clients.status", "active").lte("due_date", soon) : Promise.resolve({ data: [] }),
+        camp ? supabase.from("clients").select("id,project_name,phone,transfer_cycle,work_start_date,last_transfer_at,is_active").eq("status", "active") : Promise.resolve({ data: [] }),
       ]);
       for (const r of rem.data ?? []) out.push({ id: `r:${r.id}:${r.due_at}`, kind: "task", title: r.title, sub: "مهمة مستحقة", at: r.due_at, to: { to: "/tasks" }, action: { label: "تم", run: () => completeReminder(r) } });
       for (const l of (leads.data ?? []) as { id: string; client_name: string; phone: string | null; next_followup_at: string }[])
         out.push({ id: `l:${l.id}:${l.next_followup_at}`, kind: "lead", title: `موعد متابعة: ${l.client_name}`, sub: "كارت المتابعة", at: l.next_followup_at, to: { to: "/leads/$id", params: { id: l.id } }, ...(l.phone ? { wa: waLink(l.phone) } : {}) });
-      for (const i of (inst.data ?? []) as { id: string; amount: number; agreement_total: number; currency: string; number: number; total_count: number; due_date: string; clients: { id: string; project_name: string; phone: string | null } | null }[])
+      for (const i of (inst.data ?? []) as { id: string; amount: number; currency: string; number: number; total_count: number; is_advance: boolean; due_date: string; clients: { id: string; project_name: string; phone: string | null; payment_method: string } | null }[]) {
+        const stage = dueAlertStage(i.due_date, t);
+        if (!stage) continue;
+        const cycle = i.total_count === 0 ? `دورة ${i.clients?.payment_method === "weekly" ? "الأسبوع" : "الشهر"}` : instLabel(i);
         out.push({
-          id: `p:${i.id}`, kind: "payment", title: `هل تم تحويل الدفعة؟ — ${i.clients?.project_name ?? "العميل"}`,
-          sub: `الدفعة المستحقة: ${fmt(Number(i.amount))} من إجمالي ${fmt(Number(i.agreement_total))} ${cur(i.currency)} — دفعة ${i.number} من ${i.total_count}`, at: i.due_date + "T09:00:00Z",
-          to: { to: "/finance" }, action: { label: "نعم، تم التحويل", run: () => supabase.rpc("confirm_installment", { _id: i.id, _method: "تحويل بنكي" }) },
+          id: `p:${i.id}:${stage}`, kind: "payment",
+          title: `مستحقات ${i.clients?.project_name ?? "العميل"} - ${cycle} تستحق في ${fmtArDate(i.due_date)} (مبلغ ${fmt(Number(i.amount))} ${cur(i.currency)}) — هل تم التحصيل؟`,
+          sub: stage === "soon" ? "تنبيه مسبق: باقي يومان أو أقل" : stage === "today" ? "تستحق اليوم" : "متأخرة — لم تُحصّل بعد",
+          at: i.due_date + "T09:00:00Z",
+          to: { to: "/finance" }, action: { label: "نعم، تم التحصيل وإصدار الإيصال", run: () => supabase.rpc("confirm_installment", { _id: i.id, _method: "تحويل بنكي" }) },
         });
+      }
       for (const c of (clients.data ?? []) as { id: string; project_name: string; phone: string | null; transfer_cycle: string; work_start_date: string | null; last_transfer_at: string | null }[]) {
         const base = c.last_transfer_at ?? c.work_start_date;
         if (!base) continue;
