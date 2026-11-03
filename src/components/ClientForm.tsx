@@ -27,6 +27,8 @@ export type ClientValues = {
   work_start_date: string | null;
   advance_amount: number;
   ad_budget: number | null;
+  contract_kind: string;
+  status: string;
 };
 
 export const emptyClient: ClientValues = {
@@ -48,6 +50,8 @@ export const emptyClient: ClientValues = {
   work_start_date: new Date().toISOString().slice(0, 10),
   advance_amount: 0,
   ad_budget: null,
+  contract_kind: "project",
+  status: "active",
 };
 
 export function ClientForm({
@@ -130,6 +134,18 @@ export function ClientForm({
             </SelectContent>
           </Select>
         </div>
+        <div className="space-y-2">
+          <Label>حالة العميل</Label>
+          <Select value={v.status} onValueChange={(x) => set("status", x)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">نشط</SelectItem>
+              <SelectItem value="paused">متوقف مؤقتاً</SelectItem>
+              <SelectItem value="inactive">منتهي التعاقد</SelectItem>
+            </SelectContent>
+          </Select>
+          {v.status !== "active" && <p className="text-xs text-muted-foreground">لن تُولَّد أي استحقاقات أو تنبيهات جديدة، والسجل المالي السابق محفوظ.</p>}
+        </div>
         {buyers && buyers.length > 0 && (
           <div className="space-y-2">
             <Label>الميديا باير المسؤول</Label>
@@ -166,12 +182,23 @@ export function ClientForm({
 }
 
 function FinanceFields({ v, set }: { v: ClientValues; set: <K extends keyof ClientValues>(k: K, val: ClientValues[K]) => void }) {
-  const sched = paymentSchedule(v.contract_total ?? 0, v.payment_method, v.installments_count, v.work_start_date ?? new Date().toISOString().slice(0, 10), v.advance_amount);
+  const retainer = v.contract_kind === "retainer";
+  const sched = retainer ? [] : paymentSchedule(v.contract_total ?? 0, v.payment_method, v.installments_count, v.work_start_date ?? new Date().toISOString().slice(0, 10), v.advance_amount);
   return (
     <div className="space-y-4 rounded-lg border border-gold/30 p-4">
       <p className="text-sm font-semibold text-gold">التعاقد المالي — أتعاب الإدارة والتسويق</p>
       <p className="text-xs text-muted-foreground">ميزانية الإعلانات منفصلة تماماً عن الأتعاب ولا تدخل في الأرباح.</p>
       <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2 sm:col-span-2">
+          <Label>نوع التعاقد المالي</Label>
+          <Select value={v.contract_kind} onValueChange={(x) => { set("contract_kind", x); if (x === "retainer" && v.payment_method === "upfront") set("payment_method", "monthly"); }}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="retainer">تعاقد مستمر (يتجدد تلقائياً كل دورة)</SelectItem>
+              <SelectItem value="project">مشروع محدد (دفعات ثابتة)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-2">
           <Label>العملة</Label>
           <Select value={v.currency} onValueChange={(x) => set("currency", x)}>
@@ -180,23 +207,23 @@ function FinanceFields({ v, set }: { v: ClientValues; set: <K extends keyof Clie
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>إجمالي قيمة التعاقد</Label>
+          <Label>{retainer ? "قيمة الدورة الواحدة" : "إجمالي قيمة التعاقد"}</Label>
           <Input inputMode="decimal" className="num" value={v.contract_total ?? ""} onChange={(e) => { const x = e.target.value.replace(/[^\d.]/g, ""); set("contract_total", x ? Number(x) : null); }} />
         </div>
         <div className="space-y-2">
           <Label>طريقة ودورة السداد</Label>
           <Select value={v.payment_method} onValueChange={(x) => set("payment_method", x)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{Object.entries(PAYMENT_METHODS).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
+            <SelectContent>{retainer ? <><SelectItem value="monthly">شهري (كل 30 يوماً)</SelectItem><SelectItem value="weekly">أسبوعي (كل 7 أيام)</SelectItem></> : Object.entries(PAYMENT_METHODS).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        {v.payment_method !== "upfront" && (
+        {!retainer && v.payment_method !== "upfront" && (
           <div className="space-y-2">
             <Label>عدد الدفعات</Label>
             <Input type="number" min={1} max={60} className="num" value={v.installments_count} onChange={(e) => set("installments_count", Math.max(1, Number(e.target.value) || 1))} />
           </div>
         )}
-        {v.payment_method !== "upfront" && (
+        {!retainer && v.payment_method !== "upfront" && (
           <div className="space-y-2">
             <Label>دفعة مقدمة (اختياري)</Label>
             <Input inputMode="decimal" className="num" value={v.advance_amount || ""} onChange={(e) => { const x = e.target.value.replace(/[^\d.]/g, ""); set("advance_amount", x ? Number(x) : 0); }} />
@@ -211,6 +238,9 @@ function FinanceFields({ v, set }: { v: ClientValues; set: <K extends keyof Clie
           <Input type="date" className="num" value={v.work_start_date ?? ""} onChange={(e) => set("work_start_date", e.target.value || null)} />
         </div>
       </div>
+      {retainer && (v.contract_total ?? 0) > 0 && (
+        <p className="rounded-md bg-muted/40 p-3 text-sm">يُولَّد استحقاق <span className="num text-gold">{fmt(v.contract_total ?? 0)}</span> {cur(v.currency)} {v.payment_method === "weekly" ? "كل 7 أيام" : "كل 30 يوماً"} تلقائياً طالما العميل نشط.</p>
+      )}
       {sched.length > 0 && (
         <div className="space-y-1 rounded-md bg-muted/40 p-3 text-sm">
           <p className="text-xs text-muted-foreground">جدول الاستحقاق ({v.payment_method === "upfront" ? "مقدم كامل يوم البدء" : v.payment_method === "monthly" ? "مؤخر: أول دفعة بعد 30 يوماً" : "مؤخر: أول دفعة بعد 7 أيام"})</p>
