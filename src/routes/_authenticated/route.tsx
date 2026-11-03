@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, UserCog, Contact, Package, LogOut, Briefcase, FileText, ListChecks, Wallet, Menu } from "lucide-react";
+import { LayoutDashboard, UserCog, Contact, Package, LogOut, Briefcase, FileText, ListChecks, Wallet, Menu, Sheet as Sheet2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
@@ -58,7 +58,7 @@ function Shell() {
       : []),
     ...(me?.is("admin") || me?.is("accountant") ? [{ to: "/finance", label: "المالية والمحاسبة", icon: Wallet }] : []),
     { to: "/tasks", label: "المهام والتنبيهات", icon: ListChecks },
-    ...(me?.is("admin") ? [{ to: "/users", label: "المستخدمون", icon: UserCog }] : []),
+    ...(me?.is("admin") ? [{ to: "/users", label: "المستخدمون", icon: UserCog }, { to: "/settings", label: "مزامنة Google Sheet", icon: Sheet2 }] : []),
   ] as const;
 
   return (

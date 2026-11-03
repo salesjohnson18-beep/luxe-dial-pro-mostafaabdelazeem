@@ -26,6 +26,7 @@ import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as AuthenticatedQuotesIndexRouteImport } from './routes/_authenticated/quotes.index'
 import { Route as AuthenticatedQuotesIdRouteImport } from './routes/_authenticated/quotes.$id'
+import { Route as ApiPublicJobsSheetSyncRouteImport } from './routes/api/public/jobs/sheet-sync'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -113,6 +114,11 @@ const AuthenticatedQuotesIdRoute = AuthenticatedQuotesIdRouteImport.update({
   path: '/quotes/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicJobsSheetSyncRoute = ApiPublicJobsSheetSyncRouteImport.update({
+  id: '/api/public/jobs/sheet-sync',
+  path: '/api/public/jobs/sheet-sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
   '/quotes/': typeof AuthenticatedQuotesIndexRoute
+  '/api/public/jobs/sheet-sync': typeof ApiPublicJobsSheetSyncRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
   '/quotes': typeof AuthenticatedQuotesIndexRoute
+  '/api/public/jobs/sheet-sync': typeof ApiPublicJobsSheetSyncRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
   '/_authenticated/quotes/': typeof AuthenticatedQuotesIndexRoute
+  '/api/public/jobs/sheet-sync': typeof ApiPublicJobsSheetSyncRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/leads/'
     | '/quotes/'
+    | '/api/public/jobs/sheet-sync'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/leads'
     | '/quotes'
+    | '/api/public/jobs/sheet-sync'
   id:
     | '__root__'
     | '/'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/'
     | '/_authenticated/leads/'
     | '/_authenticated/quotes/'
+    | '/api/public/jobs/sheet-sync'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   ITokenRoute: typeof ITokenRoute
   QTokenRoute: typeof QTokenRoute
   RTokenRoute: typeof RTokenRoute
+  ApiPublicJobsSheetSyncRoute: typeof ApiPublicJobsSheetSyncRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -358,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedQuotesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/jobs/sheet-sync': {
+      id: '/api/public/jobs/sheet-sync'
+      path: '/api/public/jobs/sheet-sync'
+      fullPath: '/api/public/jobs/sheet-sync'
+      preLoaderRoute: typeof ApiPublicJobsSheetSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -399,6 +419,7 @@ const rootRouteChildren: RootRouteChildren = {
   ITokenRoute: ITokenRoute,
   QTokenRoute: QTokenRoute,
   RTokenRoute: RTokenRoute,
+  ApiPublicJobsSheetSyncRoute: ApiPublicJobsSheetSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
