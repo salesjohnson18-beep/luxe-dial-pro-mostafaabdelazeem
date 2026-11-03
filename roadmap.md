@@ -14,5 +14,5 @@
 - [x] Existing clients: installment due dates rescheduled (+7d weekly / +30d monthly)
 - [x] Lead follow-up edit
 - [ ] Auth email template showing the 6-digit code (needs email domain)
-- [ ] Recurring retainers: contract kind, client status (active/paused/inactive), auto next cycle, "generate next cycle" button, bell pre-due alerts
-- [ ] Finance: collected-income date filter (this month/last month/this week/custom) with per-client breakdown
+- [x] Recurring retainers: contract kind, client status (active/paused/inactive), auto next cycle, "generate next cycle" button, bell pre-due alerts
+- [x] Finance: collected-income date filter (this month/last month/this week/custom) with per-client breakdown
