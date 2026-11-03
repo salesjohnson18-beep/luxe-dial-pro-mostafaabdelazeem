@@ -186,6 +186,7 @@ export type Database = {
           advance_amount: number
           assigned_to: string | null
           client_name: string
+          contract_kind: string
           contract_total: number | null
           contract_type: string
           created_at: string
@@ -206,6 +207,7 @@ export type Database = {
           share_token: string
           sheet_synced_at: string | null
           sheet_url: string | null
+          status: string
           transfer_cycle: string
           work_start_date: string | null
         }
@@ -214,6 +216,7 @@ export type Database = {
           advance_amount?: number
           assigned_to?: string | null
           client_name: string
+          contract_kind?: string
           contract_total?: number | null
           contract_type?: string
           created_at?: string
@@ -234,6 +237,7 @@ export type Database = {
           share_token?: string
           sheet_synced_at?: string | null
           sheet_url?: string | null
+          status?: string
           transfer_cycle?: string
           work_start_date?: string | null
         }
@@ -242,6 +246,7 @@ export type Database = {
           advance_amount?: number
           assigned_to?: string | null
           client_name?: string
+          contract_kind?: string
           contract_total?: number | null
           contract_type?: string
           created_at?: string
@@ -262,6 +267,7 @@ export type Database = {
           share_token?: string
           sheet_synced_at?: string | null
           sheet_url?: string | null
+          status?: string
           transfer_cycle?: string
           work_start_date?: string | null
         }
@@ -861,6 +867,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _add_retainer_cycle: {
+        Args: { _client: string; _force: boolean }
+        Returns: string
+      }
+      _ensure_retainer: { Args: { _client: string }; Returns: number }
       bootstrap_user: { Args: never; Returns: string }
       can_crm: { Args: never; Returns: boolean }
       can_edit_client: { Args: { _client: string }; Returns: boolean }
@@ -872,10 +883,12 @@ export type Database = {
       }
       convert_lead_to_client: { Args: { _lead: string }; Returns: string }
       convert_quote_to_client: { Args: { _quote: string }; Returns: string }
+      ensure_recurring_cycles: { Args: never; Returns: number }
       generate_client_installments: {
         Args: { _client: string }
         Returns: number
       }
+      generate_next_cycle: { Args: { _client: string }; Returns: string }
       get_shared_invoice: { Args: { _token: string }; Returns: Json }
       get_shared_quote: { Args: { _token: string }; Returns: Json }
       get_shared_report: {
