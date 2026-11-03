@@ -53,6 +53,21 @@ function ClientPage() {
         <p className="text-xs text-gold">{client.industry || "—"}</p>
         <h1 className="break-words text-2xl font-bold sm:text-3xl">{client.project_name}</h1>
         <p className="text-muted-foreground">{client.client_name}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className={`rounded-full border px-2.5 py-0.5 text-xs ${client.status === "active" ? "border-success/40 text-success" : client.status === "paused" ? "border-gold/40 text-gold" : "border-destructive/40 text-destructive"}`}>
+            {client.status === "active" ? "نشط" : client.status === "paused" ? "متوقف مؤقتاً" : "منتهي التعاقد"}
+          </span>
+          <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
+            {client.contract_kind === "retainer" ? `تعاقد مستمر — ${client.payment_method === "weekly" ? "أسبوعي" : "شهري"}` : "مشروع محدد"}
+          </span>
+          {(canEdit || me?.is("accountant")) && client.contract_kind === "retainer" && client.status === "active" && (
+            <Button size="sm" variant="outline" className="text-gold" onClick={async () => {
+              const { data, error } = await supabase.rpc("generate_next_cycle", { _client: id });
+              if (error) return void toast.error(error.message);
+              toast.success(`تم توليد الدورة القادمة وفاتورتها — تستحق ${data ? fmtArDate(data) : ""}`);
+            }}>توليد الدورة القادمة الآن</Button>
+          )}
+        </div>
       </div>
       <Tabs defaultValue="report" dir="rtl">
         <TabsList className="h-auto max-w-full flex-wrap justify-start gap-1">
