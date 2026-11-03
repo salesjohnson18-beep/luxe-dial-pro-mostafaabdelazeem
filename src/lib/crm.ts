@@ -98,3 +98,18 @@ export function invoiceStatus(status: string, due: string, todayStr: string) {
   if (due < todayStr) return { label: "متأخرة", cls: "bg-destructive/15 text-destructive border-destructive/40" };
   return { label: "معلقة", cls: "bg-gold-soft text-gold border-gold/40" };
 }
+
+/** Label for an installment: recurring cycles have total_count 0. */
+export function instLabel(i: { number: number; total_count: number; is_advance?: boolean }, cycle?: string | null) {
+  if (i.is_advance) return "دفعة مقدمة";
+  if (i.total_count === 0) return `الدورة ${cycle === "weekly" ? "الأسبوعية" : "الشهرية"} ${i.number}`;
+  return `الدفعة ${i.number} من ${i.total_count}`;
+}
+
+/** Bell window for a due payment: 2 days before, on the day, and every day after while unpaid. */
+export function dueAlertStage(due: string, todayStr: string): "soon" | "today" | "late" | null {
+  const d = (Date.parse(due + "T00:00:00Z") - Date.parse(todayStr + "T00:00:00Z")) / 86400000;
+  if (d > 2) return null;
+  if (d > 0) return "soon";
+  return d === 0 ? "today" : "late";
+}

@@ -16,6 +16,7 @@ import { ReportCard } from "@/components/ReportCard";
 import { DateRange } from "@/components/DateRange";
 import { ClientForm, type ClientValues } from "@/components/ClientForm";
 import { useMe } from "@/lib/auth";
+import { fmtArDate } from "@/lib/crm";
 import { PLATFORMS, computeTotals, fmt, today, supportsLeads, type Entry } from "@/lib/metrics";
 import { parseSheets, type ImportResult } from "@/lib/excel-import";
 import { useServerFn } from "@tanstack/react-start";
