@@ -59,7 +59,7 @@ function SettingsPage() {
 
   async function save(patch: { webhook_url?: string | null; enabled?: boolean }) {
     const { error } = await supabase.from("sheet_sync_settings").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", true);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["sheet-sync"] });
     toast.success("تم الحفظ");
   }
