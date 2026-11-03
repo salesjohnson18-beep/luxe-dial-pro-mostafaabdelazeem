@@ -64,7 +64,7 @@ function FinancePage() {
                 <div className="min-w-0 flex-1">
                   {c && <Link to="/clients/$id" params={{ id: c.id }} className="font-medium hover:text-gold">{c.project_name} — {c.client_name}</Link>}
                   <p className="mt-1 text-sm">
-                    {i.is_advance && i.total_count > 1 ? "دفعة مقدمة" : "الدفعة المستحقة"}: <span className="num text-gold">{fmt(Number(i.amount), Number(i.amount) % 1 ? 2 : 0)}</span> من إجمالي <span className="num">{fmt(Number(i.agreement_total))}</span> {cur(i.currency)} — دفعة <span className="num">{i.number}</span> من <span className="num">{i.total_count}</span>
+                    {i.is_advance && i.total_count > 1 ? "دفعة مقدمة" : i.total_count === 0 ? "مستحق الدورة" : "الدفعة المستحقة"}: <span className="num text-gold">{fmt(Number(i.amount), Number(i.amount) % 1 ? 2 : 0)}</span> من إجمالي <span className="num">{fmt(Number(i.agreement_total))}</span> {cur(i.currency)} — {i.total_count === 0 ? `دورة متجددة رقم ${i.number}` : <>دفعة <span className="num">{i.number}</span> من <span className="num">{i.total_count}</span></>}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {i.paid ? `سُددت ${i.paid_at ? fmtArDate(i.paid_at) : ""}${i.payment_method ? ` · ${i.payment_method}` : ""}` : `تستحق ${fmtArDate(i.due_date)}${late ? " — متأخرة" : i.due_date === t ? " — اليوم" : ""}${i.postponed_count ? ` · أُجّلت ${i.postponed_count}×` : ""}`}
@@ -97,7 +97,7 @@ export function ConfirmDialog({ inst, onClose, onDone }: { inst: { id: string; a
         <DialogHeader><DialogTitle>هل تم تحويل الدفعة؟</DialogTitle></DialogHeader>
         {inst && (
           <div className="space-y-4">
-            <p className="text-sm">الدفعة المستحقة: <span className="num text-gold">{fmt(Number(inst.amount))}</span> من إجمالي <span className="num">{fmt(Number(inst.agreement_total))}</span> {cur(inst.currency)} — دفعة <span className="num">{inst.number}</span> من <span className="num">{inst.total_count}</span></p>
+            <p className="text-sm">الدفعة المستحقة: <span className="num text-gold">{fmt(Number(inst.amount))}</span> من إجمالي <span className="num">{fmt(Number(inst.agreement_total))}</span> {cur(inst.currency)} — {inst.total_count === 0 ? `دورة متجددة رقم ${inst.number}` : <>دفعة <span className="num">{inst.number}</span> من <span className="num">{inst.total_count}</span></>}</p>
             <div className="space-y-2">
               <Label>وسيلة الدفع</Label>
               <Select value={method} onValueChange={setMethod}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PAY_CHANNELS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select>
@@ -280,7 +280,7 @@ function Statement({ clients, inst, ledger }: { clients: Client[]; inst: Inst[];
           <p className="text-sm font-semibold">جدول الدفعات</p>
           <div className="space-y-1 text-sm">
             {mine.length === 0 && <p className="text-muted-foreground">لا توجد دفعات.</p>}
-            {mine.map((i) => <p key={i.id} className="flex flex-wrap justify-between gap-2 border-b border-border py-1"><span>دفعة {i.number} من {i.total_count} — {fmtArDate(i.due_date)}</span><span className={i.paid ? "text-success" : ""}><span className="num">{fmt(Number(i.amount))}</span> {i.paid ? `✓ ${i.payment_method ?? ""}` : "معلقة"}</span></p>)}
+            {mine.map((i) => <p key={i.id} className="flex flex-wrap justify-between gap-2 border-b border-border py-1"><span>{i.total_count === 0 ? `دورة ${i.number}` : `دفعة ${i.number} من ${i.total_count}`} — {fmtArDate(i.due_date)}</span><span className={i.paid ? "text-success" : ""}><span className="num">{fmt(Number(i.amount))}</span> {i.paid ? `✓ ${i.payment_method ?? ""}` : "معلقة"}</span></p>)}
           </div>
           <p className="text-sm font-semibold">سجل المعاملات</p>
           <div className="space-y-1 text-sm">
