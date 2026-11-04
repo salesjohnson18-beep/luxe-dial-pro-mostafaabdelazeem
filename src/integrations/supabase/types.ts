@@ -185,6 +185,7 @@ export type Database = {
           ad_budget: number | null
           advance_amount: number
           assigned_to: string | null
+          billing_day: number | null
           client_name: string
           contract_kind: string
           contract_total: number | null
@@ -215,6 +216,7 @@ export type Database = {
           ad_budget?: number | null
           advance_amount?: number
           assigned_to?: string | null
+          billing_day?: number | null
           client_name: string
           contract_kind?: string
           contract_total?: number | null
@@ -245,6 +247,7 @@ export type Database = {
           ad_budget?: number | null
           advance_amount?: number
           assigned_to?: string | null
+          billing_day?: number | null
           client_name?: string
           contract_kind?: string
           contract_total?: number | null
@@ -871,6 +874,7 @@ export type Database = {
         Args: { _client: string; _force: boolean }
         Returns: string
       }
+      _day_in_month: { Args: { _d: string; _day: number }; Returns: string }
       _ensure_retainer: { Args: { _client: string }; Returns: number }
       _sync_retainer_amounts: { Args: { _client: string }; Returns: undefined }
       bootstrap_user: { Args: never; Returns: string }
