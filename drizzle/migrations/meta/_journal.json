@@ -64,6 +64,13 @@
       "when": 1793705293637,
       "tag": "0008_recurring_retainers",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793776394252,
+      "tag": "0009_retainer_split_payments",
+      "breakpoints": true
     }
   ]
 }

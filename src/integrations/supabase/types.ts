@@ -872,6 +872,7 @@ export type Database = {
         Returns: string
       }
       _ensure_retainer: { Args: { _client: string }; Returns: number }
+      _sync_retainer_amounts: { Args: { _client: string }; Returns: undefined }
       bootstrap_user: { Args: never; Returns: string }
       can_crm: { Args: never; Returns: boolean }
       can_edit_client: { Args: { _client: string }; Returns: boolean }
