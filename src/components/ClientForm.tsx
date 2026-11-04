@@ -207,7 +207,7 @@ function FinanceFields({ v, set }: { v: ClientValues; set: <K extends keyof Clie
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>{retainer ? "قيمة الدورة الواحدة" : "إجمالي قيمة التعاقد"}</Label>
+          <Label>{retainer ? "قيمة الاتفاق المتجدد (لكل دورة)" : "إجمالي قيمة التعاقد"}</Label>
           <Input inputMode="decimal" className="num" value={v.contract_total ?? ""} onChange={(e) => { const x = e.target.value.replace(/[^\d.]/g, ""); set("contract_total", x ? Number(x) : null); }} />
         </div>
         <div className="space-y-2">
@@ -217,9 +217,9 @@ function FinanceFields({ v, set }: { v: ClientValues; set: <K extends keyof Clie
             <SelectContent>{retainer ? <><SelectItem value="monthly">شهري (كل 30 يوماً)</SelectItem><SelectItem value="weekly">أسبوعي (كل 7 أيام)</SelectItem></> : Object.entries(PAYMENT_METHODS).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        {!retainer && v.payment_method !== "upfront" && (
+        {(retainer || v.payment_method !== "upfront") && (
           <div className="space-y-2">
-            <Label>عدد الدفعات</Label>
+            <Label>{retainer ? "عدد الدفعات في كل دورة اتفاق" : "عدد الدفعات"}</Label>
             <Input type="number" min={1} max={60} className="num" value={v.installments_count} onChange={(e) => set("installments_count", Math.max(1, Number(e.target.value) || 1))} />
           </div>
         )}
@@ -239,7 +239,7 @@ function FinanceFields({ v, set }: { v: ClientValues; set: <K extends keyof Clie
         </div>
       </div>
       {retainer && (v.contract_total ?? 0) > 0 && (
-        <p className="rounded-md bg-muted/40 p-3 text-sm">يُولَّد استحقاق <span className="num text-gold">{fmt(v.contract_total ?? 0)}</span> {cur(v.currency)} {v.payment_method === "weekly" ? "كل 7 أيام" : "كل 30 يوماً"} تلقائياً طالما العميل نشط.</p>
+        <p className="rounded-md bg-muted/40 p-3 text-sm">الاتفاق <span className="num text-gold">{fmt(v.contract_total ?? 0)}</span> {cur(v.currency)} يُقسَّم على <span className="num">{Math.max(1, v.installments_count)}</span> دفعات — دفعة <span className="num text-gold">{fmt((v.contract_total ?? 0) / Math.max(1, v.installments_count), 2)}</span> {cur(v.currency)} {v.payment_method === "weekly" ? "كل 7 أيام" : "كل 30 يوماً"}، وتتجدد تلقائياً طالما العميل نشط.</p>
       )}
       {sched.length > 0 && (
         <div className="space-y-1 rounded-md bg-muted/40 p-3 text-sm">
