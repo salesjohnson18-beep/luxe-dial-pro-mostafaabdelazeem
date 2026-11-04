@@ -78,6 +78,13 @@
       "when": 1793776412862,
       "tag": "0010_restore_project_installments",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793776652973,
+      "tag": "0011_monthly_billing_day",
+      "breakpoints": true
     }
   ]
 }

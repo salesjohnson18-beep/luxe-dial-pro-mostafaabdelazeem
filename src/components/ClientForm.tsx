@@ -29,6 +29,7 @@ export type ClientValues = {
   ad_budget: number | null;
   contract_kind: string;
   status: string;
+  billing_day: number | null;
 };
 
 export const emptyClient: ClientValues = {
@@ -52,6 +53,7 @@ export const emptyClient: ClientValues = {
   ad_budget: null,
   contract_kind: "project",
   status: "active",
+  billing_day: null,
 };
 
 export function ClientForm({
@@ -229,6 +231,19 @@ function FinanceFields({ v, set }: { v: ClientValues; set: <K extends keyof Clie
             <Input inputMode="decimal" className="num" value={v.advance_amount || ""} onChange={(e) => { const x = e.target.value.replace(/[^\d.]/g, ""); set("advance_amount", x ? Number(x) : 0); }} />
           </div>
         )}
+        {retainer && v.payment_method === "monthly" && (
+          <div className="space-y-2">
+            <Label>يوم الاستحقاق الثابت في الشهر</Label>
+            <Select value={v.billing_day ? String(v.billing_day) : "none"} onValueChange={(x) => set("billing_day", x === "none" ? null : Number(x))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">بدون — كل 30 يوماً</SelectItem>
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <SelectItem key={d} value={String(d)}>يوم {d} من كل شهر</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">تغييره يحدّث مواعيد الدفعات القادمة غير المدفوعة. إذا كان الشهر أقصر يُستخدم آخر يوم فيه.</p>
+          </div>
+        )}
         <div className="space-y-2">
           <Label>ميزانية الإعلانات الشهرية (منفصلة)</Label>
           <Input inputMode="decimal" className="num" value={v.ad_budget ?? ""} onChange={(e) => { const x = e.target.value.replace(/[^\d.]/g, ""); set("ad_budget", x ? Number(x) : null); }} />
@@ -239,7 +254,7 @@ function FinanceFields({ v, set }: { v: ClientValues; set: <K extends keyof Clie
         </div>
       </div>
       {retainer && (v.contract_total ?? 0) > 0 && (
-        <p className="rounded-md bg-muted/40 p-3 text-sm">الاتفاق <span className="num text-gold">{fmt(v.contract_total ?? 0)}</span> {cur(v.currency)} يُقسَّم على <span className="num">{Math.max(1, v.installments_count)}</span> دفعات — دفعة <span className="num text-gold">{fmt((v.contract_total ?? 0) / Math.max(1, v.installments_count), 2)}</span> {cur(v.currency)} {v.payment_method === "weekly" ? "كل 7 أيام" : "كل 30 يوماً"}، وتتجدد تلقائياً طالما العميل نشط.</p>
+        <p className="rounded-md bg-muted/40 p-3 text-sm">الاتفاق <span className="num text-gold">{fmt(v.contract_total ?? 0)}</span> {cur(v.currency)} يُقسَّم على <span className="num">{Math.max(1, v.installments_count)}</span> دفعات — دفعة <span className="num text-gold">{fmt((v.contract_total ?? 0) / Math.max(1, v.installments_count), 2)}</span> {cur(v.currency)} {v.payment_method === "weekly" ? "كل 7 أيام" : v.billing_day ? `يوم ${v.billing_day} من كل شهر` : "كل 30 يوماً"}، وتتجدد تلقائياً طالما العميل نشط.</p>
       )}
       {sched.length > 0 && (
         <div className="space-y-1 rounded-md bg-muted/40 p-3 text-sm">
